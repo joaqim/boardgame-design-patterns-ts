@@ -1,21 +1,29 @@
+import { assert } from "chai";
 import type GraphMap from "./graph-map";
-import type { GraphEdge, GraphNode } from "./graph-map";
+import type { Node } from "./graph-map";
 
+/*
 export interface GraphTile {
   id: number;
   children: GraphTile[];
 }
+*/
 
-export default class Graph {
-  private readonly list = new Map();
+export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
+  private readonly list = new Map<TNode, NonNullable<TNode[]>>();
   private readonly matrix: number[][] = [];
+  // private readonly matrix: TNode[][] = [];
+  public readonly nodeCount: number;
 
-  public constructor(map: GraphMap) {
+  public constructor(map: GraphMap<TNodeSize, TNode>) {
+    this.nodeCount = map.length;
     map.nodes.forEach((node) => this.addNode(node));
     map.edges.forEach((edge) => this.addEdge(edge));
   }
 
-  public addNode(node: GraphNode): void {
+  public addNode(node: TNode): void {
+    assert((node as unknown as number) <= this.nodeCount);
+
     this.list.set(node, []);
 
     for (const col of this.matrix) {
@@ -27,44 +35,55 @@ export default class Graph {
     );
   }
 
-  public addEdge(edge: GraphEdge): void {
-    const start = edge[0];
-    const end = edge[1];
-    this.list.get(start).push(end);
-    this.list.get(end).push(start);
+  public addEdge(edge: [a: TNode, b: TNode]): void {
+    // TODO: Can we make this nicer if matrix is custom array type of [number]: TNode[]
+    const start = edge[0] as unknown as number;
+    const end = edge[1] as unknown as number;
+
+    assert(start <= this.nodeCount);
+    assert(end <= this.nodeCount);
+
+    this.list.get(edge[0])?.push(edge[1]);
+    this.list.get(edge[1])?.push(edge[0]);
+
     this.matrix[start][end] = 1;
     this.matrix[end][start] = 1;
   }
 
-  public addEdgeBetweenNodes(nodeA: GraphNode, nodeB: GraphNode): void {
+  public addEdgeBetweenNodes(nodeA: TNode, nodeB: TNode): void {
     this.addEdge([nodeA, nodeB]);
   }
 
-  public dfsPath(start: number, target: number): number[] | null {
+  public dfsPath(start: TNode, target: TNode): Array<TNode | undefined> {
     const stack = [start];
     const visited = new Set();
     visited.add(start);
-    const path = [];
+    const path: Array<TNode | undefined> = [];
 
-    while (stack.length > 0) {
-      const current = stack.pop();
+    // eslint-disable-next-line unicorn/explicit-length-check
+    while (stack.length) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const current = stack.pop()!;
 
       if (current !== start) path.push(current);
+      const children = this.list.get(current);
 
-      for (const neigh of this.list.get(current)) {
-        if (!visited.has(neigh)) {
-          visited.add(neigh);
-          stack.push(neigh);
+      if (children !== undefined) {
+        for (const neigh of children) {
+          if (!visited.has(neigh)) {
+            visited.add(neigh);
+            stack.push(neigh);
 
-          // Found target!
-          if (neigh === target) {
-            path.push(neigh);
-            return path;
+            // Found target!
+            if (neigh === target) {
+              path.push(neigh);
+              return path;
+            }
           }
         }
       }
     }
-    return null;
+    return [undefined];
   }
 
   public dijkstra(start: number): {

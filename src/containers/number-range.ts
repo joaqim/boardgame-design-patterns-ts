@@ -1,3 +1,5 @@
+// https://stackoverflow.com/a/70307091
+
 type Enumerate<
   N extends number,
   Accumulator extends number[] = []

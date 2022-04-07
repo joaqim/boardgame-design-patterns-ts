@@ -24,15 +24,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
-    "paths": {
-      "@*": ["src/*"]
-    }
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.d.ts"
-  ],
+    "src/**/*.d.ts", "resources/graphs/talisman-graph-config.ts"
+, "playground.spec.ts"  ],
   "exclude": [
     "lib",
     "**/*.test.ts"
@@ -40,6 +36,9 @@
   "typedocOptions": {
     "out": "docs",
     "entryPoints": "src/index.ts",
-    "exclude": ["**/*.spec.ts", "**/*.spec.tsx",  "node_modules"]
+    "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "node_modules"],
+    "validation": {
+      "notExported": false
+    }
   }
 }

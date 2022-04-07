@@ -1,21 +1,28 @@
 import { assert } from "chai";
-import type GraphMapdata from "./graph-map";
-import type { Node } from "./graph-map";
-import { nodeToNumber } from "./graph-map";
+import type { FixedArray } from "../containers";
+import { toFixedArray } from "../containers";
+import type { GraphMetaData, Node } from "./graph-meta-data";
+import { nodeToNumber } from "./graph-utils";
 
+/** Graph */
 export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
   private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
   public readonly nodeCount: number;
 
-  public constructor(map: GraphMapdata<TNodeSize, TNode>) {
+  public constructor(map: GraphMetaData<TNodeSize, TNode>) {
     this.nodeCount = map.length;
     map.nodes.forEach((node) => this.addNode(node));
     map.edges.forEach((edge) => this.addEdge(edge));
   }
 
-  public addNode(node: TNode): void {
-    assert(nodeToNumber(node) <= this.nodeCount);
+  /**
+   * Adds node to graph.
+   * @param {TNode} node
+   * @returns {void}
+   */
+  private addNode(node: TNode): void {
+    // assert(nodeToNumber(node) <= this.nodeCount);
 
     this.list.set(node, []);
 
@@ -28,7 +35,12 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     );
   }
 
-  public addEdge(edge: [a: TNode, b: TNode]): void {
+  /**
+   * Adds edge between two existing nodes
+   * @param {[TNode, TNode]} edge
+   * @returns {void}
+   */
+  private addEdge(edge: [a: TNode, b: TNode]): void {
     // TODO: Is there any way to make this nicer?
     // But we need to be able to  implicitly cast
     // a type to primitive, is that possible?
@@ -44,10 +56,6 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
 
     this.matrix[start][end] = 1;
     this.matrix[end][start] = 1;
-  }
-
-  public addEdgeBetweenNodes(nodeA: TNode, nodeB: TNode): void {
-    this.addEdge([nodeA, nodeB]);
   }
 
   /**
@@ -98,16 +106,16 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
   }
 
   public dijkstra(start: number): {
-    distances: Array<number | null>;
-    path: Array<number | null>;
+    distances: FixedArray<TNodeSize, number | null>;
+    path: Array<Node<TNodeSize> | null>;
   } {
     // This contains the distances from the start node to all other nodes
     // Initializing with a distance of "Infinity"
-    const distances: number[] = Array.from<number>({
+    const distances = Array.from<number>({
       length: this.matrix.length,
     }).fill(Number.MAX_VALUE);
 
-    // The distance from the start node to itself is of course 0
+    // The distance from the start node to itself is 0
     distances[start] = 0;
 
     // This contains whether a node was already visited
@@ -161,7 +169,12 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
       // Lastly, note that we are finished with this node.
       visited[shortestIndex] = true;
     }
-    return { distances, path };
+
+    return {
+      // distances: <FixedArray<TNodeSize, number | null>>[...distances],
+      distances: toFixedArray<TNodeSize>(distances),
+      path: <Array<Node<TNodeSize> | null>>[...path],
+    };
   }
 
   /*

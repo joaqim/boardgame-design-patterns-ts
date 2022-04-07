@@ -1,15 +1,20 @@
 import { expect } from "chai";
+import TalismanGraphConf from '../resources/graphs/talisman-graph-config';
+import { createGraph, GraphMetaData, Node, nodeToNumber } from "../src/graph";
 import Graph from "../src/graph/graph";
-//import graphConf from "../src/graph/graph-config";
-import GraphMapData, { createGraph, Node } from "../src/graph/graph-map";
 
         
-const flatNodeGraph: GraphMapData<9> = {
-    length: 9,
+// Prefer to use createGraph for helpful type conform, see diceNodeGraph
+const flatNodeGraph: GraphMetaData<10> = {
+    length: 10,
     nodes: [0,1,2,3,4,5,6,7,8],
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
 }
-
+const unconnectedNode = Object.freeze(createGraph({
+    length: 4,
+    nodes: [0, 1, 2, /* unconnected node */ 3],
+    edges: [[0, 1], [1, 2]]
+}));
 // ------------------------------------------------------------------------------
 /* Dice Node Graph
  * The layout of a die expressed as a node graph
@@ -49,13 +54,17 @@ const diceNodeGraph = Object.freeze(createGraph({
 }));
 
 /**
- *  
+ *  Recursively walk through linked list of Nodes
+ *  representing the path to walk to target, where 
+ *  the last node is guaranteed to be the expected
+ *  target.
+ * 
  * @param {number} id
  * @param {Node[]} parents
  * @returns {void}
  */
-function walkPath<TNodeSize extends number>(id: number, parents: Node<TNodeSize>[], retries = 0):void {
-    if((id === undefined && parents[id] === undefined) || retries > 128) {
+function walkPath<TNode>(id: TNode | null, parents: Array<TNode | null>, retries = 0):void {
+    if((id === undefined && parents[nodeToNumber(id)] === undefined) || retries > 128) {
         throw new Error("Cannot travel to node")
     }
     if (id === null) {
@@ -63,7 +72,7 @@ function walkPath<TNodeSize extends number>(id: number, parents: Node<TNodeSize>
     }
 
     retries +=1;
-    walkPath(parents[id], parents, retries);
+    walkPath(parents[nodeToNumber(id)], parents, retries);
 };
 
 describe('graph', ()=> {
@@ -77,31 +86,44 @@ describe('graph', ()=> {
         //expect(path.length).to.equal(9)
         // Since the graph is 1 dimensional, all distances between the nodes
         // are the same as their id which corresponds to their index in array
-        expect(distances).deep.equal(flatNodeGraph.nodes)
+        expect(distances.length).deep.equal(flatNodeGraph.nodes.length)
         expect(() => walkPath(8, path)).to.not.throw()
         expect(() => walkPath(9001, path)).to.throw("Cannot travel to node")
 
         // If it is impossible to reach a node or if it is the starting node
         // the value stored in path will be null, and it will be 0 in distances,
         // which implies that no travel is possible/necessary to reach goal.
-
-        // Let's add a node that is impossible to reach, since no edges connects to it 
-        graph.addNode(9)
-
         ;({distances, path} = graph.dijkstra(0))
         
+        
+
+
+    })
+
+    it("can't reach unconnected node", ()=> {
+        const graph = new Graph(unconnectedNode)
+
+        let {distances, path} = graph.dijkstra(0)
+
         // For now, Number.MAX_VALUE is unreachable nodes
-        expect(distances[9]).to.equal(Number.MAX_VALUE)
-        expect(path[9]).to.equal(undefined)
-        expect(() => walkPath(9, path)).to.throw("Cannot travel to node")
+        expect(distances[3]).to.equal(Number.MAX_VALUE)
+        expect(path[3]).to.equal(undefined) // undefined is unconnected/unreachable node
+        expect(() => walkPath(3, path)).to.throw("Cannot travel to node")
 
+        /* 
+         * path = [null, 0, 1, undefined]
+         * Where null is the starting node,
+         * 0 indicates that the 1th node can see the 0th
+         * 1 indicates that the 2th node can see the 1th 
+         * undefined indicates that the 3rd node is unreachable.
+         * 
+         * TODO: show use case of path e.g travel through nodes
+         * and their children to find path to target
+         * maybe add a function that determines slowest path
+         * and returns that, with optional 50/50 path choice on
+         * tie in distances of paths
+         */
 
-        // path = [null, 0, 1, 2, 3, 4, 5, 6, 7, undefined]
-        // TODO: show use case of path e.g travel through nodes
-        // and their children to find path to target
-        // maybe add a function that determines slowest path
-        // and returns that, with optional 50/50 path choice on
-        // tie in distances of paths
 
     })
 
@@ -140,9 +162,20 @@ describe('graph', ()=> {
         expect(graph.dfsPath(5, 0).length).to.equal(2)
         // 5 to 2
         expect(graph.dfsPath(4, 1).length).to.equal(2)
-        
 
         walkPath(5, path)
         //console.log(graph.dfsPath(5, 0))
+    })
+
+    it("represents Talisman board as a graph", ()=> {
+        const graph = new Graph(TalismanGraphConf)
+
+
+        let {distances, path} = graph.dijkstra(0) 
+
+        // 18 is the longest you could walk on the board,
+        // from 0 to 48 which is in the center of the board
+        expect(distances[48]).to.equal(18)
+
     })
 })

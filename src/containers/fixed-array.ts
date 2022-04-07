@@ -10,3 +10,7 @@ type GrowToSize<T, A extends T[], N extends number> = {
 }[A["length"] extends N ? 0 : 1];
 
 export type FixedArray<N extends number, T = number> = GrowToSize<T, [], N>;
+
+export const toFixedArray = <TSize extends number, T = number | null>(
+  array: T[]
+): FixedArray<TSize, T> => <FixedArray<TSize, T>>[...array];

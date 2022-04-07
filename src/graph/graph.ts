@@ -1,28 +1,21 @@
 import { assert } from "chai";
-import type GraphMap from "./graph-map";
+import type GraphMapdata from "./graph-map";
 import type { Node } from "./graph-map";
-
-/*
-export interface GraphTile {
-  id: number;
-  children: GraphTile[];
-}
-*/
+import { nodeToNumber } from "./graph-map";
 
 export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
-  private readonly list = new Map<TNode, NonNullable<TNode[]>>();
+  private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
-  // private readonly matrix: TNode[][] = [];
   public readonly nodeCount: number;
 
-  public constructor(map: GraphMap<TNodeSize, TNode>) {
+  public constructor(map: GraphMapdata<TNodeSize, TNode>) {
     this.nodeCount = map.length;
     map.nodes.forEach((node) => this.addNode(node));
     map.edges.forEach((edge) => this.addEdge(edge));
   }
 
   public addNode(node: TNode): void {
-    assert((node as unknown as number) <= this.nodeCount);
+    assert(nodeToNumber(node) <= this.nodeCount);
 
     this.list.set(node, []);
 
@@ -36,9 +29,12 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
   }
 
   public addEdge(edge: [a: TNode, b: TNode]): void {
-    // TODO: Can we make this nicer if matrix is custom array type of [number]: TNode[]
-    const start = edge[0] as unknown as number;
-    const end = edge[1] as unknown as number;
+    // TODO: Is there any way to make this nicer?
+    // But we need to be able to  implicitly cast
+    // a type to primitive, is that possible?
+    // nodeToNumber(node):number => node as unknown as number
+    const start = nodeToNumber(edge[0]);
+    const end = nodeToNumber(edge[1]);
 
     assert(start <= this.nodeCount);
     assert(end <= this.nodeCount);
@@ -54,16 +50,31 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     this.addEdge([nodeA, nodeB]);
   }
 
-  public dfsPath(start: TNode, target: TNode): Array<TNode | undefined> {
-    const stack = [start];
+  /**
+   * Returs the path to target as a simple linked list
+   * The path is a one dimensional array where the
+   * index is the index/id of the node and the number
+   * stored is the index/id * of its parent.
+   *
+   * To use, recursively follow nodes parents until
+   * finding null, which is the target of search
+   *
+   * @param {NonNullable<TNode>} start
+   * @param {NonNullable<TNode>} target
+   * @returns {Array<TNode | null>}
+   */
+  public dfsPath(
+    start: NonNullable<TNode>,
+    target: NonNullable<TNode>
+  ): Array<TNode | undefined> {
+    // Stack will never contain null
+    const stack: Array<NonNullable<TNode>> = [start];
     const visited = new Set();
     visited.add(start);
     const path: Array<TNode | undefined> = [];
 
-    // eslint-disable-next-line unicorn/explicit-length-check
-    while (stack.length) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const current = stack.pop()!;
+    while (stack.length > 0) {
+      const current = <TNode>stack.pop();
 
       if (current !== start) path.push(current);
       const children = this.list.get(current);
@@ -72,7 +83,7 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
         for (const neigh of children) {
           if (!visited.has(neigh)) {
             visited.add(neigh);
-            stack.push(neigh);
+            stack.push(<NonNullable<TNode>>neigh);
 
             // Found target!
             if (neigh === target) {
@@ -105,8 +116,8 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     // path tree
     const path = Array.from<number | null>({ length: this.matrix.length });
 
-    // The starting vertex does not
-    // have a parent
+    // The starting node does not
+    // have a parent in path tree
     path[start] = null;
 
     // While there are nodes left to visit...
@@ -145,7 +156,6 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
           path[index] = shortestIndex;
           distances[index] =
             distances[shortestIndex] + this.matrix[shortestIndex][index];
-          // console.log("Updating distance of node " + i + " to " + distances[i]);
         }
       }
       // Lastly, note that we are finished with this node.

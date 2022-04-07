@@ -1,10 +1,10 @@
 import { expect } from "chai";
 import Graph from "../src/graph/graph";
 //import graphConf from "../src/graph/graph-config";
-import GraphMap, { createGraph, Node } from "../src/graph/graph-map";
+import GraphMapData, { createGraph, Node } from "../src/graph/graph-map";
 
         
-const flatNodeGraph: GraphMap<9> = {
+const flatNodeGraph: GraphMapData<9> = {
     length: 9,
     nodes: [0,1,2,3,4,5,6,7,8],
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
@@ -35,9 +35,16 @@ const diceNodeGraph = Object.freeze(createGraph({
         [5, 1], [5, 2], [5, 3], [5, 4],
 
         // The remaining edges goes between
-        // the remaining 4 numbers on the die
-        [1, 2], [2, 3],
-        [3, 4], [4, 1],
+        // the other 4 numbers of the die
+
+        // 2 touches 3, and vice versa
+        [1, 2],
+        // 3 touches 4
+        [2, 3],
+        // 4 touches 5
+        [3, 4],
+        // 5 touches 2
+        [4, 2],
     ],
 }));
 
@@ -124,6 +131,15 @@ describe('graph', ()=> {
         expect(() => walkPath(5, path)).to.not.throw()
         expect(() => walkPath(6, path)).to.throw("Cannot travel to node")
 
+        // Distance from 1 to 2 on the die is 1
+        expect(graph.dfsPath(0, 1).length).to.equal(1)
+        // Distance from 1 to 6 on the die is 2,
+        // which is the maximum distance to travel
+        expect(graph.dfsPath(0, 5).length).to.equal(2)
+        // likiwise with 6 to 1
+        expect(graph.dfsPath(5, 0).length).to.equal(2)
+        // 5 to 2
+        expect(graph.dfsPath(4, 1).length).to.equal(2)
         
 
         walkPath(5, path)

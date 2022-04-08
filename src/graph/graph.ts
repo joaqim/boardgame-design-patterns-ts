@@ -1,17 +1,30 @@
 import { assert } from "chai";
-import type { FixedArray } from "../containers";
 import { toFixedArray } from "../containers";
-import type { GraphMetaData, Node } from "./graph-meta-data";
-import { nodeToNumber } from "./graph-utils";
+import type {
+  Edge,
+  GraphMetaData,
+  Node,
+  NodeDistances,
+  NodePath,
+  NodeStack,
+} from "./graph-meta-data";
+import { createNode, nodeToNumber } from "./graph-utils";
 
 /** Graph */
-export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
+export default class Graph<
+  TNodeSize extends number,
+  TNode = Node<TNodeSize>,
+  TOffset extends number = 0
+> {
   private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
   public readonly nodeCount: number;
+  public readonly offset;
 
-  public constructor(map: GraphMetaData<TNodeSize, TNode>) {
+  public constructor(map: GraphMetaData<TNodeSize, TOffset, TNode>) {
+    this.offset = map.offset ?? 0;
     this.nodeCount = map.length;
+
     map.nodes.forEach((node) => this.addNode(node));
     map.edges.forEach((edge) => this.addEdge(edge));
   }
@@ -22,8 +35,6 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
    * @returns {void}
    */
   private addNode(node: TNode): void {
-    // assert(nodeToNumber(node) <= this.nodeCount);
-
     this.list.set(node, []);
 
     for (const col of this.matrix) {
@@ -40,19 +51,21 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
    * @param {[TNode, TNode]} edge
    * @returns {void}
    */
-  private addEdge(edge: [a: TNode, b: TNode]): void {
-    // TODO: Is there any way to make this nicer?
-    // But we need to be able to  implicitly cast
-    // a type to primitive, is that possible?
+  private addEdge(edge: Edge<TNode>): void {
+    // TODO: can we implicitly cast a type to primitive?
+    // TNode being interchangable with [index:number] of any array
     // nodeToNumber(node):number => node as unknown as number
-    const start = nodeToNumber(edge[0]);
-    const end = nodeToNumber(edge[1]);
+    let start = nodeToNumber(edge[0]);
+    let end = nodeToNumber(edge[1]);
 
     assert(start <= this.nodeCount);
     assert(end <= this.nodeCount);
 
     this.list.get(edge[0])?.push(edge[1]);
     this.list.get(edge[1])?.push(edge[0]);
+
+    start -= this.offset;
+    end -= this.offset;
 
     this.matrix[start][end] = 1;
     this.matrix[end][start] = 1;
@@ -76,7 +89,7 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     target: NonNullable<TNode>
   ): Array<TNode | undefined> {
     // Stack will never contain null
-    const stack: Array<NonNullable<TNode>> = [start];
+    const stack: NodeStack<TNode> = [start];
     const visited = new Set();
     visited.add(start);
     const path: Array<TNode | undefined> = [];
@@ -105,28 +118,30 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     return [undefined];
   }
 
-  public dijkstra(start: number): {
-    distances: FixedArray<TNodeSize, number | null>;
-    path: Array<Node<TNodeSize> | null>;
+  public generateDistancesAndPath(start: TNode = createNode<TNode>(0)): {
+    distances: NodeDistances<TNodeSize>;
+    path: NodePath<TNode>;
   } {
     // This contains the distances from the start node to all other nodes
     // Initializing with a distance of "Infinity"
     const distances = Array.from<number>({
-      length: this.matrix.length,
+      length: this.matrix.length + this.offset,
     }).fill(Number.MAX_VALUE);
 
+    const startIndex = Math.max(nodeToNumber(start), this.offset);
     // The distance from the start node to itself is 0
-    distances[start] = 0;
+    distances[startIndex] = 0;
 
     // This contains whether a node was already visited
     const visited = [];
+    // const visited = Array.from<boolean>({ length: this.offset }).fill(true);
 
     // path tree
     const path = Array.from<number | null>({ length: this.matrix.length });
 
     // The starting node does not
     // have a parent in path tree
-    path[start] = null;
+    path[startIndex] = null;
 
     // While there are nodes left to visit...
     for (;;) {
@@ -136,8 +151,11 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
 
       for (let index = 0; index < this.matrix.length; index += 1) {
         // ... by going through all nodes that haven't been visited yet
-        if (distances[index] < shortestDistance && !visited[index]) {
-          shortestDistance = distances[index];
+        if (
+          distances[index + this.offset] < shortestDistance &&
+          !visited[index]
+        ) {
+          shortestDistance = distances[index + this.offset];
           shortestIndex = index;
         }
       }
@@ -157,13 +175,15 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
         // ...if the path over this edge is shorter...
         if (
           this.matrix[shortestIndex][index] !== 0 &&
-          distances[index] >
-            distances[shortestIndex] + this.matrix[shortestIndex][index]
+          distances[index + this.offset] >
+            distances[shortestIndex + this.offset] +
+              this.matrix[shortestIndex][index]
         ) {
           // ...Save this path as new shortest path.
           path[index] = shortestIndex;
-          distances[index] =
-            distances[shortestIndex] + this.matrix[shortestIndex][index];
+          distances[index + this.offset] =
+            distances[shortestIndex + this.offset] +
+            this.matrix[shortestIndex][index];
         }
       }
       // Lastly, note that we are finished with this node.
@@ -171,30 +191,40 @@ export default class Graph<TNodeSize extends number, TNode = Node<TNodeSize>> {
     }
 
     return {
-      // distances: <FixedArray<TNodeSize, number | null>>[...distances],
       distances: toFixedArray<TNodeSize>(distances),
-      path: <Array<Node<TNodeSize> | null>>[...path],
+      path: <NodePath<TNode>>[...path],
     };
   }
 
-  /*
-  public dfs(start: GraphTile, target: GraphTile): GraphTile | null {
-    if (start.id === target.id) {
-      return start;
+  /**
+   *  Recursively walk through linked list of Nodes
+   *  representing the path to walk to target, where
+   *  the last node is guaranteed to be the expected
+   *  target.
+   *
+   * @param {number} nextTarget
+   * @param {Node[]} path
+   * @returns {void}
+   */
+
+  public walkPathToEnd(
+    path: Array<TNode | null>,
+    nextTarget: TNode | null = createNode(this.offset),
+    retries = 0
+  ): void {
+    if (
+      (nextTarget === undefined &&
+        path[nodeToNumber(nextTarget)] === undefined) ||
+      retries > 128
+    ) {
+      throw new Error("Cannot travel to node");
     }
 
-    // Recurse with all children
-    for (const child of start.children) {
-      const result = this.dfs(child, target);
-
-      if (result !== null) {
-        // We've found the goal node while going down that child
-        return result;
-      }
+    if (nextTarget === null) {
+      return;
     }
 
-    // We've gone through all children and not found the goal node
-    return null;
+    retries += 1;
+    this.walkPathToEnd(path, path[nodeToNumber(nextTarget)], retries);
   }
-  */
 }

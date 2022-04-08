@@ -7,9 +7,9 @@ type Enumerate<
   ? Accumulator[number]
   : Enumerate<N, [...Accumulator, Accumulator["length"]]>;
 
-export type NumberRange<T extends number = 16> = Exclude<
-  Enumerate<T>,
-  Enumerate<0>
->;
+export type NumberRange<
+  T extends number = 16,
+  TStartOffset extends number = 0
+> = Exclude<Enumerate<T>, Enumerate<TStartOffset>>;
 
 // type T = NumberRange<20>

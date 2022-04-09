@@ -1,5 +1,6 @@
 import { assert } from "chai";
 import { toFixedArray } from "../containers";
+import type { Add } from "../math/meta-typing/add";
 import type {
   Edge,
   GraphMetaData,
@@ -10,23 +11,31 @@ import type {
 } from "./graph-meta-data";
 import { createNode, nodeToNumber } from "./graph-utils";
 
-/** Graph */
+/** Node Graph */
 export default class Graph<
-  TNodeSize extends number,
-  TNode = Node<TNodeSize>,
-  TOffset extends number = 0
+  // TNodeSize extends number,
+  TLength extends number,
+  TOffset extends number = 0,
+  TNodeSize extends number = Add<TLength, TOffset>,
+  TNode = Node<TNodeSize, TOffset>
 > {
   private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
   public readonly nodeCount: number;
   public readonly offset;
 
-  public constructor(map: GraphMetaData<TNodeSize, TOffset, TNode>) {
-    this.offset = map.offset ?? 0;
-    this.nodeCount = map.length;
+  // public distances?: NodeDistances<TNodeSize>;
 
-    map.nodes.forEach((node) => this.addNode(node));
-    map.edges.forEach((edge) => this.addEdge(edge));
+  public distances?: number[];
+
+  public path?: NodePath<TNode>;
+
+  public constructor(data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>) {
+    this.offset = data.offset ?? 0;
+    this.nodeCount = data.length ?? (data.nodes as TNode[]).length;
+
+    (data.nodes as TNode[]).forEach((node) => this.addNode(node));
+    data.edges?.forEach((edge) => this.addEdge(edge));
   }
 
   /**
@@ -52,9 +61,6 @@ export default class Graph<
    * @returns {void}
    */
   private addEdge(edge: Edge<TNode>): void {
-    // TODO: can we implicitly cast a type to primitive?
-    // TNode being interchangable with [index:number] of any array
-    // nodeToNumber(node):number => node as unknown as number
     let start = nodeToNumber(edge[0]);
     let end = nodeToNumber(edge[1]);
 
@@ -71,18 +77,28 @@ export default class Graph<
     this.matrix[end][start] = 1;
   }
 
-  /**
-   * Returs the path to target as a simple linked list
-   * The path is a one dimensional array where the
-   * index is the index/id of the node and the number
-   * stored is the index/id * of its parent.
+  /** TODO:
+   * Greedy best-first search
    *
-   * To use, recursively follow nodes parents until
-   * finding null, which is the target of search
+   * Does not take into account the distance from start
+   * to target.
+   *
+   * https://en.wikipedia.org/wiki/Best-first_search#Greedy_BFS
    *
    * @param {NonNullable<TNode>} start
    * @param {NonNullable<TNode>} target
-   * @returns {Array<TNode | null>}
+   * @returns {NodePath<TNode>} path from start to target
+   */
+  // eslint-disable-next-line class-methods-use-this
+  public bfsPath(target: NonNullable<TNode>): Array<TNode | undefined> {
+    return [undefined, target];
+  }
+
+  /** Depth-first search
+   *
+   * @param {NonNullable<TNode>} start
+   * @param {NonNullable<TNode>} target
+   * @returns {NodePath<TNode>} path from start to target
    */
   public dfsPath(
     start: NonNullable<TNode>,
@@ -90,7 +106,7 @@ export default class Graph<
   ): Array<TNode | undefined> {
     // Stack will never contain null
     const stack: NodeStack<TNode> = [start];
-    const visited = new Set();
+    const visited = new Set<TNode>();
     visited.add(start);
     const path: Array<TNode | undefined> = [];
 
@@ -118,7 +134,9 @@ export default class Graph<
     return [undefined];
   }
 
-  public generateDistancesAndPath(start: TNode = createNode<TNode>(0)): {
+  public generateDistancesAndPathToTarget(
+    start: TNode = createNode<TNode>(0)
+  ): {
     distances: NodeDistances<TNodeSize>;
     path: NodePath<TNode>;
   } {
@@ -128,7 +146,9 @@ export default class Graph<
       length: this.matrix.length + this.offset,
     }).fill(Number.MAX_VALUE);
 
+    // Starting index cannot be lower than offset
     const startIndex = Math.max(nodeToNumber(start), this.offset);
+
     // The distance from the start node to itself is 0
     distances[startIndex] = 0;
 
@@ -190,41 +210,108 @@ export default class Graph<
       visited[shortestIndex] = true;
     }
 
+    this.distances = distances; // toFixedArray<TNodeSize>(distances);
+    this.path = <NodePath<TNode>>[...path];
+
+    return {
+      distances: toFixedArray<TNodeSize>(distances), // this.distances,
+      path: this.path,
+    };
+    /*
     return {
       distances: toFixedArray<TNodeSize>(distances),
       path: <NodePath<TNode>>[...path],
     };
+    */
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  public nodesWithinReach(
+    reach: TNode
+    // distances: Array<TNode | null>
+  ): TNode[] {
+    const result: TNode[] = [];
+
+    if (this.distances === undefined) {
+      return result;
+    }
+
+    for (let index = 0; index < this.distances.length; index += 1) {
+      const dist = this.distances[index];
+
+      if (dist && dist <= nodeToNumber(reach)) {
+        const node = this.path?.[index];
+
+        if (node) result.push(node);
+      }
+    }
+
+    return result;
   }
 
   /**
-   *  Recursively walk through linked list of Nodes
+   *  Walk through linked list of Nodes
    *  representing the path to walk to target, where
    *  the last node is guaranteed to be the expected
    *  target.
    *
-   * @param {number} nextTarget
    * @param {Node[]} path
+   * @param {function(node: TNode | null):void} [callback]
    * @returns {void}
    */
 
+  // eslint-disable-next-line class-methods-use-this
   public walkPathToEnd(
     path: Array<TNode | null>,
-    nextTarget: TNode | null = createNode(this.offset),
-    retries = 0
+    callback?: (node: TNode | null) => void
   ): void {
-    if (
-      (nextTarget === undefined &&
-        path[nodeToNumber(nextTarget)] === undefined) ||
-      retries > 128
-    ) {
-      throw new Error("Cannot travel to node");
+    for (const node of path) {
+      if (node === undefined) {
+        return;
+      }
+
+      callback?.(node);
+    }
+  }
+
+  /**
+   *  Walk through linked list of Nodes
+   *  representing the path to walk to target, where
+   *  the last node is guaranteed to be the expected
+   *  target.
+   *
+   * @param {Node[]} path
+   * @param {number} target
+   * @param {function(node: TNode | null):void} [callback]
+   * @returns {boolean}
+   */
+
+  // eslint-disable-next-line class-methods-use-this
+  public walkPathToTarget(
+    path: Array<TNode | null>,
+    target: TNode | null,
+    callback?: (node: TNode | null) => void
+  ): boolean {
+    // Target is at origin
+    if (target === null) {
+      return true;
     }
 
-    if (nextTarget === null) {
-      return;
+    // Target is unreachable from precalculated paths
+    if (path[nodeToNumber(target) - this.offset] === undefined) {
+      throw new Error("Cannot reach node");
     }
 
-    retries += 1;
-    this.walkPathToEnd(path, path[nodeToNumber(nextTarget)], retries);
+    for (const node of path) {
+      callback?.(node);
+
+      // Found target
+      if (node === target) {
+        return true;
+      }
+    }
+
+    // Did not find target
+    return false;
   }
 }

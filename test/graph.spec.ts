@@ -1,13 +1,13 @@
 import { expect } from "chai";
 import TalismanGraphConf from '../resources/graphs/talisman-graph-config';
-import { createGraph, GraphMetaData } from "../src/graph";
+import { FixedArray } from "../src/containers";
+import type { Node } from "../src/graph";
+import { createGraph, GraphMetaData, NodePath, nodeToNumber } from "../src/graph";
 import Graph from "../src/graph/graph";
 
         
-// Prefer to use createGraph for helpful type conform, see diceNodeGraph
-const flatNodeGraph: GraphMetaData<10, 0> = {
-    length: 10,
-    offset: 0,
+// Prefer to use createGraph for helpful typescript hints, see other graphs
+const flatNodeGraph: GraphMetaData<9> = {
     nodes: [0,1,2,3,4,5,6,7,8],
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
 }
@@ -17,11 +17,17 @@ const flatNodeGraph: GraphMetaData<10, 0> = {
 const unconnectedNode = Object.freeze(createGraph({
     length: 6,
     nodes: [0, 1, 2, /* unconnected nodes */ 3, 4, 5],
-    edges: [[0, 1], [1, 2], /* 4 and 5 only see eachother */ [4, 5]]
+    edges: [
+        [0, 1], [1, 2], 
+        [4, 5] /* 4 and 5 only see eachother, while 3 sees none */]
 }));
-// ------------------------------------------------------------------------------
-/* Dice Node Graph
+
+/** Dice Node Graph
  * The layout of a die expressed as a node graph
+ * 
+ * Could be used to rotate a visual representation of a die to
+ * a desired result from any starting face of the die.
+ *
  *                ______
  *               |0    |
  *               |     |
@@ -35,9 +41,14 @@ const unconnectedNode = Object.freeze(createGraph({
  */
 
 const diceNodeGraph = Object.freeze(createGraph({
-    length: 7,
-    offset: 1,
-    nodes: [1, 2, 3, 4, 5, 6],
+    length: 6,
+    offset: 1, // We offset array by 1 to start node index at 1 for clarity
+    nodes: [
+        /** TODO: For now, only 0 can be null and we need more nullable slots
+         * for larger offset than 1
+         */
+        null, /* this is the unused node held by the offset index */
+        1, 2, 3, 4, 5, 6],
     edges: [
         // 1 is adjacent to 4 numbers on the die
         [1, 2], [1, 3], [1, 4], [1, 5],
@@ -58,60 +69,67 @@ const diceNodeGraph = Object.freeze(createGraph({
     ],
 }));
 
+const walkPath = <TNode>(start: TNode, path: NodePath<TNode>): void => {
+    if(start === null) return;
+    console.log(start)
+    walkPath(path[nodeToNumber(start)], path)
+}
+
 describe('graph', ()=> {
 
     it('flat node graph', () => {
         const graph = new Graph(flatNodeGraph)
 
-        let {distances, path} = graph.generateDistancesAndPath(0)
+        let {distances, path} = graph.generateDistancesAndPathToTarget(0)
 
         // The longest path possible is 9
-        //expect(path.length).to.equal(9)
+        expect(path.length).to.equal(9)
+        // path = [null, 0, 1 ... 7] of length 9
+
         // Since the graph is 1 dimensional, all distances between the nodes
         // are the same as their id which corresponds to their index in array
         expect(distances.length).deep.equal(flatNodeGraph.nodes.length)
         expect(() => graph.walkPathToEnd(path)).to.not.throw()
 
-        // If it is impossible to reach a node or if it is the starting node
-        // the value stored in path will be null, and it will be 0 in distances,
-        // which implies that no travel is possible/necessary to reach goal.
-        ;({distances, path} = graph.generateDistancesAndPath(0))
-        
-        
+        expect(() => graph.walkPathToTarget(path,8)).to.not.throw()
 
 
     })
-        /* TODO: show use case of path e.g travel through nodes
-         * and their children to find path to target
-         * maybe add a function that determines slowest path
-         * and returns that, with optional 50/50 path choice on
-         * tie in distances of paths
-         */
-
 
     it("can't reach unconnected node", ()=> {
         const graph = new Graph(unconnectedNode)
 
-        let {distances, path} = graph.generateDistancesAndPath()
-        console.log(path)
+        let {distances, path} = graph.generateDistancesAndPathToTarget()
 
-        /* 
+        /**
          * path = [null, 0, 1, undefined, undefined, undefined]
          * Where null is the starting node,
-         * 0 indicates that the 1th node can see the 0th
-         * 1 indicates that the 2th node can see the 1th 
-         * undefined indicates that node 3 and up are unreachable
+         * 0 .. 1 are the next reachable nodes
+         * [... undefined] indicates that the rest of nodes
+         * are unreachable from 0
          */
+
 
         // For now, Number.MAX_VALUE is unreachable nodes
         expect(distances[3]).to.equal(Number.MAX_VALUE)
-        expect(path[3]).to.equal(undefined) // undefined is unconnected/unreachable node
-        //expect(() => graph.walkPathToEnd(path)).to.throw("Cannot travel to node")
 
+        // If it is impossible to reach a node or if it is the starting node
+        // and the value stored in that index of path array will be undefined, 
+        // which is different than null, which implies you're at the start/origin
+        // of the calculated paths/distances
+        expect(path[3]).to.equal(undefined)
+
+        // Can travel from 0 to 2 here, which is the last reachable node from 0
+        expect(() => graph.walkPathToEnd(path)).to.not.throw()
+        
+        // Can travel from 0 to 2 here aswell
+        expect(() => graph.walkPathToTarget(path,2)).to.not.throw()
+        // Cannot reach 3 from starting point of 0
+        expect(() => graph.walkPathToTarget(path,3)).to.throw("Cannot reach node")
 
         // If we regenaret distances and paths from 5 as starting point
         // We will only be able to reach its neighbour 6
-        ;({distances, path} = graph.generateDistancesAndPath(5))
+        ;({distances, path} = graph.generateDistancesAndPathToTarget(5))
         expect(distances[4]).to.equal(1)
         expect(distances[3]).to.equal(Number.MAX_VALUE)
         // 4 sees 5
@@ -119,9 +137,8 @@ describe('graph', ()=> {
         // 5 is the starting point, therefore null
         expect(path[5]).to.equal(null)
 
-
-
-
+        // We cannot reach node 0 from starting point of 5
+        expect(() => graph.walkPathToTarget(path,0)).to.throw("Cannot reach node")
     })
 
     it('dice node graph', () => {
@@ -129,7 +146,7 @@ describe('graph', ()=> {
 
         // Where 1 is the starting node that all distances are calculated from
         // 1 is optional and will default to graph.offset, which is 1 in this case
-        let {distances, path} = graph.generateDistancesAndPath() 
+        let {distances, path} = graph.generateDistancesAndPathToTarget() 
 
         expect(path.length + graph.offset).to.equal(distances.length)
         
@@ -145,21 +162,19 @@ describe('graph', ()=> {
         // travel to the starting point, and undefined is the starting offset
         // path =  [undefined, null, 0, 0, 0, 0, 1]
         expect(path.length).to.equal(diceNodeGraph.nodes.length)
-
-        console.log(path)
-        //expect(() => graph.walkPathToEnd(path)).to.not.throw()
-        //expect(() => graph.walkPathToEnd(path)).to.throw("Cannot travel to node")
+        expect(() => graph.walkPathToTarget(path, 6)).to.not.throw()
 
         // Distance from 1 to 2 on the die is 1
         expect(graph.dfsPath(1, 2).length).to.equal(1)
         // Distance from 1 to 6 on the die is 2,
-        // which is the maximum distance to travel on a die
+        // which is the maximum distance to travel
+        // on a die, the opposites sides always adds
+        // up to 7
         expect(graph.dfsPath(1, 6).length).to.equal(2)
         // likewise with 6 to 1
         expect(graph.dfsPath(6, 1).length).to.equal(2)
         // and 5 to 2
         expect(graph.dfsPath(5, 2).length).to.equal(2)
-
         // while 5 is adjacent to 3
         expect(graph.dfsPath(5, 3).length).to.equal(1)
     })
@@ -168,11 +183,29 @@ describe('graph', ()=> {
         const graph = new Graph(TalismanGraphConf)
 
 
-        let {distances, path} = graph.generateDistancesAndPath(0) 
+        let {distances, path} = graph.generateDistancesAndPathToTarget(0) 
 
-        // 18 is the longest you could walk on the board,
-        // from 0 to 48 which is in the center of the board
+        /* 
+         * With 0 being the top left corner of the board
+         * 18 steps is the longest you would move to
+         * reach node 0 from node 48 which is in the 
+         * center of the board
+         */
+
         expect(distances[48]).to.equal(18)
 
+        //console.log(path)
+        //console.log(graph.walkPathToTarget(path, 39, (node)=>console.log(node)))
+        //console.log(graph.nodesWithinReach(5))
+
+
+        ;({distances, path} = graph.generateDistancesAndPathToTarget(25))
+        walkPath(5, path)
+
+let nodes: FixedArray<2, Node<2>>;
+nodes = [0, 1];
+nodes.forEach((node) => console.log(node));
+
+        //console.log(graph.walkPathToTarget(path, 24, (node)=>console.log(node)))
     })
 })

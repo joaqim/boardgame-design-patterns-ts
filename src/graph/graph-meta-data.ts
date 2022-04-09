@@ -1,5 +1,6 @@
 import type { FixedArray } from "../containers";
 import type { NumberRange } from "../containers/number-range";
+import type { Add } from "../math/meta-typing/add";
 
 export type Node<
   TRange extends number,
@@ -16,13 +17,15 @@ export type NodeDistances<TSize extends number> = FixedArray<
 export type Edge<TNode> = [a: TNode, b: TNode];
 
 export interface GraphMetaData<
-  TSize extends number,
-  TOffset extends number,
-  TNode = Node<TSize, TOffset>,
+  TLength extends number,
+  TOffset extends number = 0 | 1,
+  TNodeSize extends number = Add<TLength, TOffset>,
+  TNode = Node<TNodeSize, TOffset>,
   TEdge = Edge<TNode>
 > {
-  length: TSize;
+  length?: TLength;
   offset?: TOffset;
-  nodes: TNode[];
-  edges: TEdge[];
+  // nodes: TNode[];
+  nodes: FixedArray<TNodeSize, TNode | null>;
+  edges?: TEdge[];
 }

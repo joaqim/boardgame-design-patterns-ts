@@ -26,4 +26,4 @@ module.exports = {
     "import/prefer-default-export": "off", // Allow single Named-export
     "unicorn/prevent-abbreviations": "warn",
   },
-}
+};

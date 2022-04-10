@@ -24,9 +24,9 @@ export default class Graph<
   public readonly nodeCount: number;
   public readonly offset;
 
-  // public distances?: NodeDistances<TNodeSize>;
+  public distances?: NodeDistances<TNodeSize>;
 
-  public distances?: number[];
+  // public distances?: number[];
 
   public path?: NodePath<TNode>;
 
@@ -134,9 +134,7 @@ export default class Graph<
     return [undefined];
   }
 
-  public generateDistancesAndPathToTarget(
-    start: TNode = createNode<TNode>(0)
-  ): {
+  public generateDistancesAndPath(start: TNode = createNode<TNode>(0)): {
     distances: NodeDistances<TNodeSize>;
     path: NodePath<TNode>;
   } {
@@ -210,39 +208,36 @@ export default class Graph<
       visited[shortestIndex] = true;
     }
 
-    this.distances = distances; // toFixedArray<TNodeSize>(distances);
+    this.distances = toFixedArray<TNodeSize>(distances);
     this.path = <NodePath<TNode>>[...path];
 
     return {
-      distances: toFixedArray<TNodeSize>(distances), // this.distances,
+      distances: this.distances,
       path: this.path,
     };
-    /*
-    return {
-      distances: toFixedArray<TNodeSize>(distances),
-      path: <NodePath<TNode>>[...path],
-    };
-    */
   }
 
-  // eslint-disable-next-line class-methods-use-this
   public nodesWithinReach(
     reach: TNode
     // distances: Array<TNode | null>
   ): TNode[] {
     const result: TNode[] = [];
 
-    if (this.distances === undefined) {
+    if (this.distances === undefined || this.path === undefined) {
       return result;
     }
 
-    for (let index = 0; index < this.distances.length; index += 1) {
-      const dist = this.distances[index];
+    for (
+      let index = nodeToNumber(this.offset) + 1;
+      index < this.nodeCount + this.offset;
+      index += 1
+    ) {
+      const dist = (this.distances as number[])[index];
 
-      if (dist && dist <= nodeToNumber(reach)) {
-        const node = this.path?.[index];
+      if (dist <= nodeToNumber(reach)) {
+        const node = this.path[index];
 
-        if (node) result.push(node);
+        if (node !== null) result.push(createNode(index));
       }
     }
 

@@ -1,7 +1,5 @@
 import { expect } from "chai";
 import TalismanGraphConf from '../resources/graphs/talisman-graph-config';
-import { FixedArray } from "../src/containers";
-import type { Node } from "../src/graph";
 import { createGraph, GraphMetaData, NodePath, nodeToNumber } from "../src/graph";
 import Graph from "../src/graph/graph";
 
@@ -44,8 +42,9 @@ const diceNodeGraph = Object.freeze(createGraph({
     length: 6,
     offset: 1, // We offset array by 1 to start node index at 1 for clarity
     nodes: [
-        /** TODO: For now, only 0 can be null and we need more nullable slots
-         * for larger offset than 1
+        /** TODO: For now, only 0 is guaranteed to exist in any array
+         * and can be assigned null. We need more dynamically created
+         * nullable slots for larger offset than 1
          */
         null, /* this is the unused node held by the offset index */
         1, 2, 3, 4, 5, 6],
@@ -80,7 +79,7 @@ describe('graph', ()=> {
     it('flat node graph', () => {
         const graph = new Graph(flatNodeGraph)
 
-        let {distances, path} = graph.generateDistancesAndPathToTarget(0)
+        let {distances, path} = graph.generateDistancesAndPath(0)
 
         // The longest path possible is 9
         expect(path.length).to.equal(9)
@@ -99,7 +98,7 @@ describe('graph', ()=> {
     it("can't reach unconnected node", ()=> {
         const graph = new Graph(unconnectedNode)
 
-        let {distances, path} = graph.generateDistancesAndPathToTarget()
+        let {distances, path} = graph.generateDistancesAndPath()
 
         /**
          * path = [null, 0, 1, undefined, undefined, undefined]
@@ -129,7 +128,7 @@ describe('graph', ()=> {
 
         // If we regenaret distances and paths from 5 as starting point
         // We will only be able to reach its neighbour 6
-        ;({distances, path} = graph.generateDistancesAndPathToTarget(5))
+        ;({distances, path} = graph.generateDistancesAndPath(5))
         expect(distances[4]).to.equal(1)
         expect(distances[3]).to.equal(Number.MAX_VALUE)
         // 4 sees 5
@@ -146,10 +145,11 @@ describe('graph', ()=> {
 
         // Where 1 is the starting node that all distances are calculated from
         // 1 is optional and will default to graph.offset, which is 1 in this case
-        let {distances, path} = graph.generateDistancesAndPathToTarget() 
+        let {distances, path} = graph.generateDistancesAndPath() 
 
         expect(path.length + graph.offset).to.equal(distances.length)
-        
+        // TODO:
+
         // How many 90 degrees turns do you have to rotate
         // a dice to go from 1 to 6 ( where index 0 is node 1 and 5 is 6)
         // distances = [0, 1, 1, 1, 1, 2]
@@ -160,6 +160,7 @@ describe('graph', ()=> {
 
         // Here the starting node is null since you can never 
         // travel to the starting point, and undefined is the starting offset
+        // TODO: Should path equal something else?
         // path =  [undefined, null, 0, 0, 0, 0, 1]
         expect(path.length).to.equal(diceNodeGraph.nodes.length)
         expect(() => graph.walkPathToTarget(path, 6)).to.not.throw()
@@ -177,35 +178,37 @@ describe('graph', ()=> {
         expect(graph.dfsPath(5, 2).length).to.equal(2)
         // while 5 is adjacent to 3
         expect(graph.dfsPath(5, 3).length).to.equal(1)
+
+        //console.log(graph.nodesWithinReach(1))
+        //expect(graph.nodesWithinReach(1)).to.deep.equal([])
     })
 
     it("represents Talisman board as a graph", ()=> {
         const graph = new Graph(TalismanGraphConf)
 
 
-        let {distances, path} = graph.generateDistancesAndPathToTarget(0) 
+        let {distances, path} = graph.generateDistancesAndPath(0) 
 
-        /* 
+        /**
          * With 0 being the top left corner of the board
-         * 18 steps is the longest you would move to
-         * reach node 0 from node 48 which is in the 
-         * center of the board
+         * 18 steps is the longest you could move
+         * between node 0 from node 48, which is in
+         * the  center of the board
          */
 
         expect(distances[48]).to.equal(18)
 
+        expect(graph.nodesWithinReach(0)).to.deep.equal([])
+        // 0 is at corner between 1 and 23
+        expect(graph.nodesWithinReach(1)).to.deep.equal([1, 23])
+        // if you continue further away you can reach 2, and 22
+        expect(graph.nodesWithinReach(2)).to.deep.equal([1, 2, 22, 23])
+
         //console.log(path)
-        //console.log(graph.walkPathToTarget(path, 39, (node)=>console.log(node)))
-        //console.log(graph.nodesWithinReach(5))
 
-
-        ;({distances, path} = graph.generateDistancesAndPathToTarget(25))
-        walkPath(5, path)
-
-let nodes: FixedArray<2, Node<2>>;
-nodes = [0, 1];
-nodes.forEach((node) => console.log(node));
-
-        //console.log(graph.walkPathToTarget(path, 24, (node)=>console.log(node)))
+        //;({distances, path} = graph.generateDistancesAndPath(48))
+        //console.log(distances)
+        //console.log(path)
+        //walkPath(0, path)
     })
 })

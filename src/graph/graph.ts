@@ -133,6 +133,16 @@ export default class Graph<
     return [undefined];
   }
 
+  /**
+   *
+   *
+   * @param {TNode} [start=createNode<TNode>(0)]
+   * @return {*}  {{
+   *     distances: NodeDistances<TNodeSize>;
+   *     path: NodePath<TNode>;
+   *   }}
+   * @memberof Graph
+   */
   public generateDistancesAndPath(start: TNode = createNode<TNode>(0)): {
     distances: NodeDistances<TNodeSize>;
     path: NodePath<TNode>;
@@ -214,6 +224,18 @@ export default class Graph<
       distances: this.distances,
       path: this.path,
     };
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  public walkPath(
+    start: TNode | null,
+    path: NodePath<TNode>,
+    callback?: (node: TNode | null) => void
+  ): void {
+    if (start === null) return;
+    const nextNode = path[nodeToNumber(start)];
+    callback?.(nextNode);
+    this.walkPath(nextNode, path, callback);
   }
 
   public nodesWithinReach(

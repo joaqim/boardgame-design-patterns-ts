@@ -204,6 +204,30 @@ describe('graph', ()=> {
         // if you continue further away you can reach 2, and 22
         expect(graph.nodesWithinReach(2)).to.deep.equal([1, 2, 22, 23])
 
+
+        // A typical use case might be:
+        // Player is at node 0, they rolled 6 on the move die
+        // Which nodes are within reach of 0?
+        ;({distances, path} = graph.generateDistancesAndPath(/* Calculate from starting node: */ 0))
+        expect(graph.nodesWithinReach(6).length).to.equal(12)
+        // For brevity, let's assume they roled a two instead:
+        expect(graph.nodesWithinReach(2)).to.deep.equal([1, 2, 22, 23])
+        // Let's move to node 2
+        ;({distances, path} = graph.generateDistancesAndPath(/* Calculate from target node: */ 2))
+
+        let nodesTraversed = []
+        // Walk from 0 to node 2
+        graph.walkPath(/* start: */ 0, path, (node)=> nodesTraversed.push(node));
+        // Where null indicates end of path, and only the numbers indicate movement
+        expect(nodesTraversed).to.deep.equal([1, 2, null]) 
+        
+        nodesTraversed = []
+        // We can start at any number within path, here we go from 1 to 2
+        graph.walkPath(1, path, (node)=> nodesTraversed.push(node));
+        // Here we only need to step once before we reach target of node 2
+        expect(nodesTraversed).to.deep.equal([2, null]) 
+
+
         //console.log(path)
 
         //;({distances, path} = graph.generateDistancesAndPath(48))

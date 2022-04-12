@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { toFixedArray } from "../containers";
-import type { Add } from "../math/meta-typing/add";
+import type { Add } from "../math/meta-typing";
 import type {
   Edge,
   GraphMetaData,
@@ -85,7 +85,6 @@ export default class Graph<
    *
    * https://en.wikipedia.org/wiki/Best-first_search#Greedy_BFS
    *
-   * @param {NonNullable<TNode>} start
    * @param {NonNullable<TNode>} target
    * @returns {NodePath<TNode>} path from start to target
    */

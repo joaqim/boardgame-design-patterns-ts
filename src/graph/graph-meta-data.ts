@@ -1,6 +1,6 @@
 import type { FixedArray } from "../containers";
 import type { NumberRange } from "../containers/number-range";
-import type { Add } from "../math/meta-typing/add";
+import type { Add } from "../math/meta-typing";
 
 export type Node<
   TRange extends number,

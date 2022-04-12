@@ -11,8 +11,8 @@
     "eslint.workingDirectories": [{
         "mode": "auto"
     }],
-    "eslint.validate": ["typescript"],
-    "explorer.confirmDragAndDrop": false, 
+    "eslint.validate": ["typescript", "typescriptreact", "javascript", "javascriptreact"],
+    "explorer.confirmDragAndDrop": false,
     "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
     "prettier.eslintIntegration": true,
     "[typescript]": {

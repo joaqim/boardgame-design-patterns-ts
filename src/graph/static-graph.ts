@@ -1,4 +1,3 @@
-import { assert } from "chai";
 import { toFixedArray } from "../containers";
 import type { Add } from "../math/meta-typing";
 import type {
@@ -11,24 +10,26 @@ import type {
 } from "./graph-meta-data";
 import { createNode, nodeToNumber } from "./graph-utils";
 
-//TODO: Make node graph dynamic by default, i.e don't use TNode enforced indexing, see instead to StaticGraph
-/** Node Graph */
+type AdjacencyNodeMatrix<TNode extends number> = Record<
+  TNode,
+  Record<TNode, 0 | 1>
+> &
+  number[][];
 
-export default class Graph<
+/** Node Graph */
+export default class StaticGraph<
   // TNodeSize extends number,
   TLength extends number,
   TOffset extends number = 0,
   TNodeSize extends number = Add<TLength, TOffset>,
-  TNode = Node<TNodeSize, TOffset>
+  TNode extends number = Node<TNodeSize, TOffset>
 > {
   private readonly list = new Map<TNode, TNode[]>();
-  private readonly matrix: number[][] = [];
+  private readonly matrix: AdjacencyNodeMatrix<TNode>;
   public readonly nodeCount: number;
   public readonly offset;
 
   public distances?: NodeDistances<TNodeSize>;
-
-  // public distances?: number[];
 
   public path?: NodePath<TNode>;
 
@@ -36,25 +37,13 @@ export default class Graph<
     this.offset = data.offset ?? 0;
     this.nodeCount = data.length ?? (data.nodes as TNode[]).length;
 
-    (data.nodes as TNode[]).forEach((node) => this.addNode(node));
+    (data.nodes as TNode[]).forEach((node) => this.list.set(node, []));
+
+    this.matrix = Array.from({ length: this.nodeCount }).fill(
+      Array.from({ length: this.nodeCount }).fill(0)
+    ) as AdjacencyNodeMatrix<TNode>;
+
     data.edges?.forEach((edge) => this.addEdge(edge));
-  }
-
-  /**
-   * Adds node to graph.
-   * @param {TNode} node
-   * @returns {void}
-   */
-  public addNode(node: TNode): void {
-    this.list.set(node, []);
-
-    for (const col of this.matrix) {
-      col.push(0);
-    }
-
-    this.matrix.push(
-      Array.from<number>({ length: this.matrix.length + 1 }).fill(0)
-    );
   }
 
   /**
@@ -62,37 +51,14 @@ export default class Graph<
    * @param {[TNode, TNode]} edge
    * @returns {void}
    */
-  public addEdge(edge: Edge<TNode>): void {
-    let start = nodeToNumber(edge[0]);
-    let end = nodeToNumber(edge[1]);
-
-    assert(start <= this.nodeCount);
-    assert(end <= this.nodeCount);
-
+  private addEdge(edge: Edge<TNode>): void {
     this.list.get(edge[0])?.push(edge[1]);
     this.list.get(edge[1])?.push(edge[0]);
 
-    start -= this.offset;
-    end -= this.offset;
-
+    const start = nodeToNumber(edge[0]) - this.offset;
+    const end = nodeToNumber(edge[1]) - this.offset;
     this.matrix[start][end] = 1;
     this.matrix[end][start] = 1;
-  }
-
-  /** TODO:
-   * Greedy best-first search
-   *
-   * Does not take into account the distance from start
-   * to target.
-   *
-   * https://en.wikipedia.org/wiki/Best-first_search#Greedy_BFS
-   *
-   * @param {NonNullable<TNode>} target
-   * @returns {NodePath<TNode>} path from start to target
-   */
-  // eslint-disable-next-line class-methods-use-this
-  public bfsPath(target: NonNullable<TNode>): Array<TNode | undefined> {
-    return [undefined, target];
   }
 
   /** Depth-first search

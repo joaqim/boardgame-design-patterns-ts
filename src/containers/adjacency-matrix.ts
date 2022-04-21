@@ -4,8 +4,7 @@ import type { FixedArray } from "./fixed-array";
 export type AdjacencyMatrix<TSize extends number> = FixedArray<
   TSize,
   FixedArray<TSize, 0 | 1>
-> &
-  number[][];
+>;
 
 const AdjacencyMatrixIdentity = <TLength extends number>(
   size: number
@@ -34,8 +33,8 @@ export const createAdjacencyMatrix = <
   data.edges?.forEach((edge) => {
     const start = edge[0];
     const end = edge[1];
-    matrix[start][end] = 1;
-    matrix[end][start] = 1;
+    (matrix as number[][])[start][end] = 1;
+    (matrix as number[][])[end][start] = 1;
   });
 
   return matrix;

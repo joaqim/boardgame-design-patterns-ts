@@ -13,7 +13,6 @@ import { createNode, nodeToNumber } from "./graph-utils";
 
 /** Node Graph */
 export default class Graph<
-  // TNodeSize extends number,
   TLength extends number,
   TOffset extends number = 0,
   TNodeSize extends number = Add<TLength, TOffset>,
@@ -25,8 +24,6 @@ export default class Graph<
   public readonly offset;
 
   public distances?: NodeDistances<TNodeSize>;
-
-  // public distances?: number[];
 
   public path?: NodePath<TNode>;
 

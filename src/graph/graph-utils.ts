@@ -1,18 +1,6 @@
 import type { GraphMetaData } from "./graph-meta-data";
 
-/*
-export const createNode = <TSize extends number>(
-  nodeValue: number
-): Node<TSize> => <Node<TSize>>nodeValue;
-*/
-export const createGraph = <
-  // TNodeSize extends number,
-  // TOffset extends number = 0
-
-  TLength extends number,
-  TOffset extends number = 0
-  // TNodeSize extends number = Add<TLength, TOffset>
->(
+export const createGraph = <TLength extends number, TOffset extends number = 0>(
   graphMap: GraphMetaData<TLength, TOffset>
 ): GraphMetaData<TLength, TOffset> => {
   return graphMap;

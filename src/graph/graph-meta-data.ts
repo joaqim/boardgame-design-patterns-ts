@@ -28,7 +28,7 @@ export interface GraphMetaData<
   // nodes: TNode[];
   nodes: FixedArray<TNodeSize, TNode | null>;
   edges?: TEdge[];
-
+  directedEdges?: TEdge[];
   conditional?: Record<
     string,
     {

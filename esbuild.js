@@ -9,7 +9,7 @@ const results = esbuild.buildSync({
   minify: true,
   splitting: true,
   format: "esm",
-  target: ["esnext"],
+  target: ["ESNext"],
 });
 
 if (results.errors.length + results.warnings.length > 0) {

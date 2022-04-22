@@ -22,6 +22,7 @@ module.exports = {
         allowTemplateLiterals: true,
       },
     ],
+    "@typescript-eslint/comma-dangle": ["error", "only-multiline"],
     "prettier/prettier": ["error"],
     "import/prefer-default-export": "off", // Allow single Named-export
     "unicorn/prevent-abbreviations": "warn",

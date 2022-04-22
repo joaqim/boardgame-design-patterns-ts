@@ -21,6 +21,7 @@ export default class Graph<
 > {
   private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
+  private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
   public readonly nodeCount: number;
   public readonly offset;
 
@@ -36,6 +37,7 @@ export default class Graph<
 
     (data.nodes as TNode[]).forEach((node) => this.addNode(node));
     data.edges?.forEach((edge) => this.addEdge(edge));
+    this.data = data;
   }
 
   /**
@@ -329,5 +331,9 @@ export default class Graph<
 
     // Did not find target
     return false;
+  }
+
+  public forEachNode(callback: (nodes: TNode[], key: TNode) => void): void {
+    this.list.forEach((nodes, key) => callback(nodes, key));
   }
 }

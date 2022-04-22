@@ -33,6 +33,7 @@ export default class Graph<
 
     (data.nodes as TNode[]).forEach((node) => this.addNode(node));
     data.edges?.forEach((edge) => this.addEdge(edge));
+    data.directedEdges?.forEach((edge) => this.addEdge(edge, false));
   }
 
   /**
@@ -55,23 +56,23 @@ export default class Graph<
   /**
    * Adds edge between two existing nodes
    * @param {[TNode, TNode]} edge
+   * @param {boolean} [bidirectional=true]
    * @returns {void}
    */
-  private addEdge(edge: Edge<TNode>): void {
-    let start = nodeToNumber(edge[0]);
-    let end = nodeToNumber(edge[1]);
+  private addEdge(edge: Edge<TNode>, bidirectional = true): void {
+    const start = nodeToNumber(edge[0]);
+    const end = nodeToNumber(edge[1]);
 
     assert(start <= this.nodeCount);
     assert(end <= this.nodeCount);
 
     this.list.get(edge[0])?.push(edge[1]);
-    this.list.get(edge[1])?.push(edge[0]);
+    this.matrix[start - this.offset][end - this.offset] = 1;
 
-    start -= this.offset;
-    end -= this.offset;
-
-    this.matrix[start][end] = 1;
-    this.matrix[end][start] = 1;
+    if (bidirectional) {
+      this.list.get(edge[1])?.push(edge[0]);
+      this.matrix[end - this.offset][start - this.offset] = 1;
+    }
   }
 
   /** TODO:

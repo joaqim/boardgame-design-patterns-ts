@@ -6,15 +6,14 @@ import Graph from "../src/graph/graph";
 
 // Prefer to use createGraph for helpful typescript hints, see other graphs
 const flatNodeGraph: GraphMetaData<9> = {
-    nodes: [0,1,2,3,4,5,6,7,8],
+    length: 9,
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
 }
 /*
  * Example of node graph with unconnected/unreachable nodes
  */
-const unconnectedNode = Object.freeze(createGraph({
+const unconnectedNode = Object.freeze(createGraph<6>({
     length: 6,
-    nodes: [0, 1, 2, /* unconnected nodes */ 3, 4, 5],
     edges: [
         [0, 1], [1, 2],
         [4, 5] /* 4 and 5 only see eachother, while 3 sees none */]
@@ -38,16 +37,16 @@ const unconnectedNode = Object.freeze(createGraph({
  *               |0___0|
  */
 
-const diceNodeGraph = Object.freeze(createGraph({
+const diceNodeGraph = Object.freeze(createGraph<6, 1>({
     length: 6,
     offset: 1, // We offset array by 1 to start node index at 1 for clarity
-    nodes: [
+    //nodes: [
         /** TODO: For now, only 0 is guaranteed to exist in any array
          * and can be assigned null. We need more dynamically created
          * nullable slots for larger offset than 1
          */
-        null, /* this is the unused node held by the offset index */
-        1, 2, 3, 4, 5, 6],
+        // null, /* this is the unused node held by the offset index */
+        // 1, 2, 3, 4, 5, 6],
     edges: [
         // 1 is adjacent to 4 numbers on the die
         [1, 2], [1, 3], [1, 4], [1, 5],
@@ -68,9 +67,9 @@ const diceNodeGraph = Object.freeze(createGraph({
     ],
 }));
 
-const oneWayNodeGraph = Object.freeze(createGraph({
+const oneWayNodeGraph = Object.freeze(createGraph<3>({
     length: 3,
-    nodes: [0, 1, 2],
+    // nodes: [0, 1, 2],
     /* edges with only one direction */
     directedEdges: [[0,1], [1, 2]]
 }))
@@ -88,10 +87,10 @@ const oneWayNodeGraph = Object.freeze(createGraph({
  *   |     V
  *   6-----5
  */
-const directedEdgesWithLoopingNodeGraph = Object.freeze(createGraph({
+const directedEdgesWithLoopingNodeGraph = Object.freeze(createGraph<6, 1>({
     length: 6,
     offset: 1,
-    nodes: [null, 1, 2, 3, 4, 5, 6],
+    // nodes: [null, 1, 2, 3, 4, 5, 6],
     edges: [
         [1, 2],
         [2, 3],
@@ -123,7 +122,7 @@ describe('graph', ()=> {
 
         // Since the graph is 1 dimensional, all distances between the nodes
         // are the same as their id which corresponds to their index in array
-        expect(distances.length).deep.equal(flatNodeGraph.nodes.length)
+        expect(distances.length).deep.equal(flatNodeGraph.length)
         expect(() => graph.walkPathToEnd(path)).to.not.throw()
 
         expect(() => graph.walkPathToTarget(path,8)).to.not.throw()
@@ -198,7 +197,7 @@ describe('graph', ()=> {
         // travel to the starting point, and undefined is the starting offset
         // TODO: Should path equal something else?
         // path =  [undefined, null, 0, 0, 0, 0, 1]
-        expect(path.length).to.equal(diceNodeGraph.nodes.length)
+        expect(path.length).to.equal(diceNodeGraph.length + diceNodeGraph.offset)
         expect(() => graph.walkPathToTarget(path, 6)).to.not.throw()
 
         // Distance from 1 to 2 on the die is 1

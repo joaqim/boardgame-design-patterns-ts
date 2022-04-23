@@ -1,4 +1,5 @@
 import { assert } from "chai";
+import type { FixedArray } from "../containers";
 import { toFixedArray } from "../containers";
 import type { Add } from "../math/meta-typing";
 import type {
@@ -20,8 +21,9 @@ export default class Graph<
 > {
   private readonly list = new Map<TNode, TNode[]>();
   private readonly matrix: number[][] = [];
-  private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
-  public readonly nodeCount: number;
+  // private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
+  private readonly nodes: FixedArray<TNodeSize, TNode | null>;
+  public readonly length: number;
   public readonly offset;
 
   public distances?: NodeDistances<TNodeSize>;
@@ -30,12 +32,23 @@ export default class Graph<
 
   public constructor(data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>) {
     this.offset = data.offset ?? 0;
-    this.nodeCount = data.length ?? (data.nodes as TNode[]).length;
 
-    (data.nodes as TNode[]).forEach((node) => this.addNode(node));
+    if (data.length == null || data.length <= 0) {
+      throw new Error("Graph: Cannot create graph with length of 0 or less.");
+    }
+    this.length = data.length;
+
+    this.nodes = <FixedArray<TNodeSize, TNode | null>>(
+      Array.from({ length: data.length + this.offset })
+    );
+
+    (this.nodes as TNode[]).forEach((node, index) => {
+      (this.nodes as number[])[index + this.offset] = index + this.offset;
+      this.addNode(node);
+    });
+
     data.edges?.forEach((edge) => this.addEdge(edge));
     data.directedEdges?.forEach((edge) => this.addEdge(edge, false));
-    this.data = data;
   }
 
   /**
@@ -65,8 +78,8 @@ export default class Graph<
     const start = nodeToNumber(edge[0]);
     const end = nodeToNumber(edge[1]);
 
-    assert(start <= this.nodeCount);
-    assert(end <= this.nodeCount);
+    assert(start <= this.length);
+    assert(end <= this.length);
 
     this.list.get(edge[0])?.push(edge[1]);
     this.matrix[start - this.offset][end - this.offset] = 1;
@@ -250,7 +263,7 @@ export default class Graph<
 
     for (
       let index = nodeToNumber(this.offset) + 1;
-      index < this.nodeCount + this.offset;
+      index < this.length + this.offset;
       index += 1
     ) {
       const dist = (this.distances as number[])[index];

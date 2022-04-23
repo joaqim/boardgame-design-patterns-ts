@@ -23,10 +23,10 @@ export interface GraphMetaData<
   TNode = Node<TNodeSize, TOffset>,
   TEdge = Edge<TNode>
 > {
-  length?: TLength;
+  length: TLength;
   offset?: TOffset;
   // nodes: TNode[];
-  nodes: FixedArray<TNodeSize, TNode | null>;
+  // nodes?: FixedArray<TNodeSize, TNode | null>;
   edges?: TEdge[];
   directedEdges?: TEdge[];
   conditional?: Record<
@@ -34,6 +34,7 @@ export interface GraphMetaData<
     {
       nodes?: Array<TNode | null>;
       edges?: TEdge[];
+      directedEdges?: TEdge[];
     }
   >;
 }

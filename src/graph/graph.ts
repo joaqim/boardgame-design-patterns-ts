@@ -21,7 +21,7 @@ export default class Graph<
   private readonly list = new Map<TNode, TNode[]>();
   // private readonly matrix: number[][] = [];
   private readonly matrix: AdjacencyMatrix<TLength, TOffset, TNodeSize, TNode>;
-  // private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
+  private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
   private readonly nodes: FixedArray<TNodeSize, TNode | null>;
   public readonly length: number;
   public readonly offset;
@@ -56,6 +56,7 @@ export default class Graph<
 
     data.edges?.forEach((edge) => this.addEdge(edge));
     data.directedEdges?.forEach((edge) => this.addEdge(edge, false));
+    this.data = data;
   }
 
   /**
@@ -294,7 +295,7 @@ export default class Graph<
    * @param {Node[]} path
    * @param {number} target
    * @param {function(node: TNode | null):void} [callback]
-   * @returns {void}
+   * @returns {boolean}
    */
 
   // eslint-disable-next-line class-methods-use-this
@@ -302,10 +303,11 @@ export default class Graph<
     path: Array<TNode | null>,
     target: TNode | null,
     callback?: (node: TNode | null) => void
-  ): void {
-    // Target is at origin
+  ): boolean {
+    // Target is already at origin,
+    // therefore we can not reach it by walking
     if (target === null) {
-      return;
+      return false;
     }
 
     // Target is unreachable from precalculated paths
@@ -318,14 +320,40 @@ export default class Graph<
 
       // Found target
       if (node === target) {
-        return;
+        return true;
       }
     }
-
     // Did not find target
+    return false;
   }
 
-  public forEachNode(callback: (nodes: TNode[], key: TNode) => void): void {
-    this.list.forEach((nodes, key) => callback(nodes, key));
+  public forEachNode(callback: (node: number) => void): void {
+    for (
+      let index = this.offset;
+      index < this.length + this.offset;
+      index += 1
+    ) {
+      callback(index);
+    }
+    // (this.nodes as number[]).forEach((node) => callback(node));
+  }
+
+  public forEachEdge(
+    callback: (edge: [a: number, b: number]) => void,
+    conditions: string[]
+  ): void {
+    this.data.edges?.forEach((edge) =>
+      callback(edge as [a: number, b: number])
+    );
+
+    if (conditions && this.data.conditional) {
+      for (const key of Object.keys(this.data.conditional)) {
+        if (conditions.includes(key) || conditions.includes("all")) {
+          this.data.conditional[key].edges?.forEach((edge) =>
+            callback(edge as [a: number, b: number])
+          );
+        }
+      }
+    }
   }
 }

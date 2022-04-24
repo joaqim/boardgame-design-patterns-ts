@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import TalismanGraphConf from '../resources/graphs/talisman-graph-config';
+// import TalismanGraphConf from '../example/graphs/talisman-graph-config';
+import TalismanGraphConf from './graphs/talisman-graph-config';
 import { createGraph, GraphMetaData, NodePath, nodeToNumber } from "../src/graph";
 import Graph from "../src/graph/graph";
-
 
 // Prefer to use createGraph for helpful typescript hints, see other graphs
 const flatNodeGraph: GraphMetaData<9> = {

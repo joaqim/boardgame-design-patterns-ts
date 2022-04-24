@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "outDir": "lib",
-    "target": "es5",
+    "target": "ES2016",
     "module": "ESNext",
     "moduleResolution": "Node",
     "lib": [
-      "ES2015"
+      "ES2016"
     ],
     "sourceMap": true,
     "strict": true,
@@ -27,11 +27,11 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.d.ts", "resources/graphs/talisman-graph-config.ts"
-, "playground.spec.ts"  ],
+    "src/**/*.d.ts",
+  ],
   "exclude": [
     "lib",
-    "**/*.test.ts"
+    "test/**/*.ts",
   ],
   "typedocOptions": {
     "out": "docs",

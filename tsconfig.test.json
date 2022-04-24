@@ -16,7 +16,8 @@
     ]
   },
   "include": [
-    "./**/*.ts"
+    "./test/**/*.spec.ts",
+    "example/graphs/talisman-graph-config.ts"
   ],
   "exclude": [
     "node_modules",

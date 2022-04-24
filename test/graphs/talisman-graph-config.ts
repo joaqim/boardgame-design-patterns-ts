@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { createGraph } from "../../src/graph";
+import { createGraph } from "../../src";
 
 /*
  * The board from Talisman the Boardgame represented as a Node Graph
@@ -19,7 +19,7 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
   conditional: {
     // The Portal of Power can only be crossed conditonally.
     "portal_of_power": {
-      edges: [[32, 48]]
+      edges: [[32, 40]]
     },
     // Any step taken in the innermost ring can only be taken conditonally
     "innermost_region": {
@@ -49,7 +49,7 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
     // Raft can be used to cross The Storm River
     // Dock in City Expansion can be used to land on any node connected 
     // to these edges
-    "the_storm_river": {
+    "storm_river": {
       edges: [
         [0, 24],
         [1, 24], [1, 25],
@@ -71,7 +71,7 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
         [17, 35], [17, 36],
         [18, 36],
         [19, 36],
-        [20, 36], [20, 37],
+        [20, 36], [20, 37], [20, 38],
         [21, 38], [21, 39],
         [22, 39], [22, 24],
         [23, 24],

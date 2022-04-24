@@ -339,18 +339,24 @@ export default class Graph<
   }
 
   public forEachEdge(
-    callback: (edge: [a: number, b: number]) => void,
+    callback: (edge: [a: number, b: number], bidirectional: boolean, conditional: boolean ) => void,
     conditions: string[]
   ): void {
     this.data.edges?.forEach((edge) =>
-      callback(edge as [a: number, b: number])
+      callback(edge as [a: number, b: number], true, false)
+    );
+    this.data.directedEdges?.forEach((edge) =>
+      callback(edge as [a: number, b: number], false, false)
     );
 
     if (conditions && this.data.conditional) {
       for (const key of Object.keys(this.data.conditional)) {
         if (conditions.includes(key) || conditions.includes("all")) {
           this.data.conditional[key].edges?.forEach((edge) =>
-            callback(edge as [a: number, b: number])
+            callback(edge as [a: number, b: number], true, true)
+          );
+          this.data.conditional[key].directedEdges?.forEach((edge) =>
+            callback(edge as [a: number, b: number], false, true)
           );
         }
       }

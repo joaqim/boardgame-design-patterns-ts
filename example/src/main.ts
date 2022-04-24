@@ -57,14 +57,24 @@ class DrawingApp {
     context.fill();
   }
 
-  private drawEdge(edge: GraphEdge, radius = 6): void {
+  private drawEdge(
+    edge: GraphEdge,
+    bidirectional = true,
+    conditional = false
+  ): void {
     const context = this.context;
-    context.strokeStyle = "green";
+
+    if (conditional && bidirectional) {
+      context.strokeStyle = "red";
+    } else {
+      context.strokeStyle = bidirectional ? "cyan" : "darkblue";
+    }
     context.lineWidth = 2;
     const nodeA = TalismanNodeLayoutRelativePosition[edge[0]];
     const nodeB = TalismanNodeLayoutRelativePosition[edge[1]];
     const width = this.canvas.width;
     const height = this.canvas.height;
+    const radius = 6;
     context.beginPath();
     context.moveTo(nodeA[0] * width + radius, nodeA[1] * height + radius);
     context.lineTo(nodeB[0] * width + radius, nodeB[1] * height + radius);
@@ -72,23 +82,17 @@ class DrawingApp {
   }
 
   private drawGraph(graph: Graph<49>): void {
-    graph.forEachNode((node: number): void => {
-      const pos = TalismanNodeLayoutRelativePosition[node];
-
-      if (pos) {
-        this.drawNode([
-          pos[0] * this.canvas.width,
-          pos[1] * this.canvas.height
-        ]);
-      }
-    });
-
     graph.forEachEdge(
-      (edge: GraphEdge) => {
-        this.drawEdge(edge);
+      (edge: GraphEdge, bidirectional: boolean, conditional: boolean): void => {
+        this.drawEdge(edge, bidirectional, conditional);
       },
       ["all"]
     );
+    graph.forEachNode((node: number): void => {
+      const pos = TalismanNodeLayoutRelativePosition[node];
+
+      this.drawNode([pos[0] * this.canvas.width, pos[1] * this.canvas.height]);
+    });
   }
 }
 

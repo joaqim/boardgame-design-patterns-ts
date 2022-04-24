@@ -1,0 +1,25 @@
+{
+  "name": "example3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rimraf dist && node ./esbuild.js",
+    "start": "rimraf dist && node ./serve.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Joaqim Planstedt",
+  "license": "ISC",
+  "dependencies": {
+    "boardgame-design-patterns-ts": "file:.."
+  },
+  "devDependencies": {
+    "@types/html-minifier-terser": "^6.1.0",
+    "esbuild": "^0.14.36",
+    "esbuild-plugin-inline-image": "^0.0.8",
+    "html-minifier-terser": "^7.0.0-alpha.2",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.6.3"
+  }
+}

@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Graph } from "boardgame-design-patterns-ts";
-import talismanBoardImgSource from "../assets/talisman_board.png";
+import talismanBoardImgSource from "../assets/talisman_board_clone.png";
 import TalismanGraphConfig from "../graphs/talisman-graph-config";
 import { TalismanNodeLayoutRelativePosition } from "./talisman-node-layout";
 

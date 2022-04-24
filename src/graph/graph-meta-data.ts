@@ -18,7 +18,7 @@ export type Edge<TNode> = [a: TNode, b: TNode];
 
 export interface GraphMetaData<
   TLength extends number,
-  TOffset extends number = 0 | 1,
+  TOffset extends 0 | 1 = 0,
   TNodeSize extends number = Add<TLength, TOffset>,
   TNode = Node<TNodeSize, TOffset>,
   TEdge = Edge<TNode>

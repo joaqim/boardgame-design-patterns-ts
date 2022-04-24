@@ -40,13 +40,11 @@ const unconnectedNode = Object.freeze(createGraph<6>({
 const diceNodeGraph = Object.freeze(createGraph<6, 1>({
     length: 6,
     offset: 1, // We offset array by 1 to start node index at 1 for clarity
-    //nodes: [
-        /** TODO: For now, only 0 is guaranteed to exist in any array
-         * and can be assigned null. We need more dynamically created
-         * nullable slots for larger offset than 1
-         */
-        // null, /* this is the unused node held by the offset index */
-        // 1, 2, 3, 4, 5, 6],
+    /** TODO: For now, only 0 is guaranteed to exist in any array
+     * and can be assigned null. We need more dynamically created
+     * nullable slots for larger offset than 1
+     * nodes = [null, 1, 2, 3, 4, 5, 6]
+     */
     edges: [
         // 1 is adjacent to 4 numbers on the die
         [1, 2], [1, 3], [1, 4], [1, 5],
@@ -80,10 +78,8 @@ const oneWayNodeGraph = Object.freeze(createGraph<3>({
  *   1-----2             V: One way
  *   |     |
  *   |     3
- *   |     |
  *   |     V
  *   |     4--5
- *   |     |
  *   |     V
  *   6-----5
  */
@@ -103,7 +99,7 @@ const directedEdgesWithLoopingNodeGraph = Object.freeze(createGraph<6, 1>({
     directedEdges: [[3,4], [4, 6]]
 }))
 
-const walkPath = <TNode>(start: TNode, path: NodePath<TNode>): void => {
+const walkPath = <TNode extends number>(start: TNode, path: NodePath<TNode>): void => {
     if(start === null) return;
     console.log(start)
     walkPath(path[nodeToNumber(start)], path)
@@ -182,8 +178,8 @@ describe('graph', ()=> {
         // 1 is optional and will default to graph.offset, which is 1 in this case
         let {distances, path} = graph.generateDistancesAndPath()
 
-        expect(path.length + graph.offset).to.equal(distances.length)
-        // TODO:
+        expect(path.length).to.equal(distances.length)
+        expect(path.length).to.equal(diceNodeGraph.length + diceNodeGraph.offset)
 
         // How many 90 degrees turns do you have to rotate
         // a dice to go from 1 to 6 ( where index 0 is node 1 and 5 is 6)
@@ -195,9 +191,7 @@ describe('graph', ()=> {
 
         // Here the starting node is null since you can never
         // travel to the starting point, and undefined is the starting offset
-        // TODO: Should path equal something else?
-        // path =  [undefined, null, 0, 0, 0, 0, 1]
-        expect(path.length).to.equal(diceNodeGraph.length + diceNodeGraph.offset)
+        // path = [undefined, null, 1, 1, 1, 1, 2]
         expect(() => graph.walkPathToTarget(path, 6)).to.not.throw()
 
         // Distance from 1 to 2 on the die is 1
@@ -221,12 +215,11 @@ describe('graph', ()=> {
     it("directed node graph can be one-way", ()=> {
         const graph = new Graph(oneWayNodeGraph)
 
-        // 0 can reach 1 -> 2
         let {distances, path} = graph.generateDistancesAndPath(0)
-
-        // Expect distances to be [0, 1, 2]
+        // 0 -> 1 -> 2
+        // It takes 1 step to reach 1, and 2 steps to reach 2
         expect(distances).to.deep.equal([0, 1, 2])
-        // Expect path to be [null, 0, 1]
+        // 0 can reach 1 which can then reach 2
         expect(path).to.deep.equal([null, 0, 1])
 
         // 2 cannot reach 1 or 0, since the edges are directional ( one-way )
@@ -246,7 +239,8 @@ describe('graph', ()=> {
         // The distance from 3 to 4 is 1
         expect(distances[4]).to.equal(1)
         ;({distances, path} = graph.generateDistancesAndPath(6));
-        /* The distance from 6 to 4 is 4,
+        /**
+         * The distance from 6 to 4 is 4,
          * since you have to loop around to reach it from 3 by looping
          * over to (6 -> 1), 1 -> 2 -> 3 -> 4
          * Counting steps taken, so 6 is not included in distance.

@@ -338,28 +338,61 @@ export default class Graph<
     // (this.nodes as number[]).forEach((node) => callback(node));
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  private callbackEdges(
+    edges?: Array<Edge<TNode>>,
+    callback?: (
+      edge: [a: number, b: number],
+      bidirectional: boolean,
+      conditional: boolean
+    ) => void,
+    bidirectional = true,
+    conditional = false
+  ): void {
+    edges?.forEach((edge) =>
+      callback?.(edge as [a: number, b: number], bidirectional, conditional)
+    );
+  }
+
   public forEachEdge(
-    callback: (edge: [a: number, b: number], bidirectional: boolean, conditional: boolean ) => void,
+    callback: (
+      edge: [a: number, b: number],
+      bidirectional: boolean,
+      conditional: boolean
+    ) => void,
     conditions: string[]
   ): void {
-    this.data.edges?.forEach((edge) =>
-      callback(edge as [a: number, b: number], true, false)
-    );
-    this.data.directedEdges?.forEach((edge) =>
-      callback(edge as [a: number, b: number], false, false)
-    );
+    if (conditions) {
+      let hasDefault = false;
 
-    if (conditions && this.data.conditional) {
-      for (const key of Object.keys(this.data.conditional)) {
-        if (conditions.includes(key) || conditions.includes("all")) {
-          this.data.conditional[key].edges?.forEach((edge) =>
-            callback(edge as [a: number, b: number], true, true)
-          );
-          this.data.conditional[key].directedEdges?.forEach((edge) =>
-            callback(edge as [a: number, b: number], false, true)
-          );
+      if (conditions.includes("default")) {
+        this.callbackEdges(this.data.edges, callback, true, false);
+        this.callbackEdges(this.data.directedEdges, callback, false, false);
+        hasDefault = true;
+      }
+
+      if (this.data.conditional) {
+        for (const key of Object.keys(this.data.conditional)) {
+          if (conditions.includes(key) || conditions.includes("all")) {
+            if (
+              !hasDefault &&
+              this.data.conditional[key].extends?.includes("default")
+            ) {
+              this.callbackEdges(this.data.edges, callback, true, false);
+              this.callbackEdges(this.data.directedEdges, callback, false, false);
+            }
+             this.callbackEdges(this.data.conditional[key].edges, callback, true, true);
+             this.callbackEdges(this.data.conditional[key].directedEdges, callback, false, true);
+          }
         }
       }
+    } else {
+      this.data.edges?.forEach((edge) =>
+        callback(edge as [a: number, b: number], true, false)
+      );
+      this.data.directedEdges?.forEach((edge) =>
+        callback(edge as [a: number, b: number], false, false)
+      );
     }
   }
 }

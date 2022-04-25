@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { createGraph } from "boardgame-design-patterns-ts";
+import { GraphMetaData } from "boardgame-design-patterns-ts";
 
 /*
  * The board from Talisman the Boardgame represented as a Node Graph
@@ -7,7 +7,7 @@ import { createGraph } from "boardgame-design-patterns-ts";
  * are connected to eachother.
  */
 
-const TalismanGraphConfig = Object.freeze(createGraph<49>({
+const TalismanGraphConfig: GraphMetaData<49> = {
   length: 49,
   edges: [
     // Outer ring
@@ -16,10 +16,15 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
     // The middle ring
     [24, 25], [25, 26], [26, 27], [27, 28], [28, 29], [29, 30], [30, 31], [31, 32], [32, 33], [33, 34], [34, 35], [35, 36], [36, 37], [37, 38], [38, 39], [39, 24],
   ],
+  directedEdges: [
+    // You can walk out of the inner region
+    // past The Sentinel Bridge without conditions
+    [35, 16],
+  ],
   conditional: {
     // The Portal of Power can only be crossed conditonally.
     "portal_of_power": {
-      edges: [[32, 40]]
+      directedEdges: [[32, 40]]
     },
     // Any step taken in the innermost ring can only be taken conditonally
     "innermost_region": {
@@ -28,13 +33,16 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
         [40, 41], [41, 42], [42, 43], [43, 47],
         // Path of wisdom
         [40, 44], [44, 45], [45, 46], [46, 47],
-
+        // You can always walk out of the innermost region
+        // through The Portal of Power
+        [40, 32]
       ],
       directedEdges: [
         // Crown of Command can only be crossed one-way
         // i.e you can't walk out once you are on the throne
         [47, 48]
-      ]
+      ],
+      extends: ["default"]
     },
     // Use the Tavern Ferry to cross over The Storm River to the Temple
     "tavern_ferry": {
@@ -42,12 +50,13 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
     },
     // The Sentinel Bridge can only be crossed conditonally ( after defating or avoiding The Sentinel.)
     "sentinel_bridge": {
-      edges: [
+      directedEdges: [
         [16, 35]
       ],
+      extends: ["default"]
     },
     // Raft can be used to cross The Storm River
-    // Dock in City Expansion can be used to land on any node connected 
+    // Dock in City Expansion can be used to land on any node connected
     // to these edges
     "storm_river": {
       edges: [
@@ -84,9 +93,10 @@ const TalismanGraphConfig = Object.freeze(createGraph<49>({
         [16, 35],
         // Tavern Ferry to cross The Storm River
         [6, 28]
-      ]
+      ],
+      extends: ["default"]
     }
   }
-}));
+};
 
 export default TalismanGraphConfig

@@ -35,6 +35,8 @@ export interface GraphMetaData<
       nodes?: Array<TNode | null>;
       edges?: TEdge[];
       directedEdges?: TEdge[];
+      extends?: string[];
+      stepLimit?: number;
     }
   >;
 }

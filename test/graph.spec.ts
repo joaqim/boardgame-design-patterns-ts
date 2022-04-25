@@ -1,23 +1,22 @@
 import { expect } from "chai";
 // import TalismanGraphConf from '../example/graphs/talisman-graph-config';
 import TalismanGraphConf from './graphs/talisman-graph-config';
-import { createGraph, GraphMetaData, NodePath, nodeToNumber } from "../src/graph";
+import { createGraphData, GraphMetaData, NodePath, nodeToNumber } from "../src/graph";
 import Graph from "../src/graph/graph";
 
-// Prefer to use createGraph for helpful typescript hints, see other graphs
-const flatNodeGraph: GraphMetaData<9> = {
+const flatNodeGraph: Readonly<GraphMetaData<9>> = {
     length: 9,
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
 }
 /*
  * Example of node graph with unconnected/unreachable nodes
  */
-const unconnectedNode = Object.freeze(createGraph<6>({
+const unconnectedNode: Readonly<GraphMetaData<6>> = {
     length: 6,
     edges: [
         [0, 1], [1, 2],
         [4, 5] /* 4 and 5 only see eachother, while 3 sees none */]
-}));
+};
 
 /** Dice Node Graph
  * The layout of a die expressed as a node graph
@@ -37,7 +36,7 @@ const unconnectedNode = Object.freeze(createGraph<6>({
  *               |0___0|
  */
 
-const diceNodeGraph = Object.freeze(createGraph<6, 1>({
+const diceNodeGraph : Readonly<GraphMetaData<6, 1>> = {
     length: 6,
     offset: 1, // We offset array by 1 to start node index at 1 for clarity
     /** TODO: For now, only 0 is guaranteed to exist in any array
@@ -63,14 +62,14 @@ const diceNodeGraph = Object.freeze(createGraph<6, 1>({
         // 5 touches 3
         [5, 3],
     ],
-}));
+};
 
-const oneWayNodeGraph = Object.freeze(createGraph<3>({
+const oneWayNodeGraph: GraphMetaData<3> = {
     length: 3,
     // nodes: [0, 1, 2],
     /* edges with only one direction */
     directedEdges: [[0,1], [1, 2]]
-}))
+};
 /*  Directed Node Graph with Looping and bidirectional edges
  *  To get back to 4 you would have to loop around
  *  and enter from 3 again.
@@ -83,7 +82,7 @@ const oneWayNodeGraph = Object.freeze(createGraph<3>({
  *   |     V
  *   6-----5
  */
-const directedEdgesWithLoopingNodeGraph = Object.freeze(createGraph<6, 1>({
+const directedEdgesWithLoopingNodeGraph: GraphMetaData<6, 1> = {
     length: 6,
     offset: 1,
     // nodes: [null, 1, 2, 3, 4, 5, 6],
@@ -97,7 +96,7 @@ const directedEdgesWithLoopingNodeGraph = Object.freeze(createGraph<6, 1>({
     ],
     /* edges with only one direction */
     directedEdges: [[3,4], [4, 6]]
-}))
+};
 
 const walkPath = <TNode extends number>(start: TNode, path: NodePath<TNode>): void => {
     if(start === null) return;

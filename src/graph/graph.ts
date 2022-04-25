@@ -338,6 +338,7 @@ export default class Graph<
     // (this.nodes as number[]).forEach((node) => callback(node));
   }
 
+  // TODO: Make better
   // eslint-disable-next-line class-methods-use-this
   private callbackEdges(
     edges?: Array<Edge<TNode>>,
@@ -354,6 +355,7 @@ export default class Graph<
     );
   }
 
+  // TODO: Make better
   public forEachEdge(
     callback: (
       edge: [a: number, b: number],
@@ -379,10 +381,43 @@ export default class Graph<
               this.data.conditional[key].extends?.includes("default")
             ) {
               this.callbackEdges(this.data.edges, callback, true, false);
-              this.callbackEdges(this.data.directedEdges, callback, false, false);
+              this.callbackEdges(
+                this.data.directedEdges,
+                callback,
+                false,
+                false
+              );
+              hasDefault = true;
             }
-             this.callbackEdges(this.data.conditional[key].edges, callback, true, true);
-             this.callbackEdges(this.data.conditional[key].directedEdges, callback, false, true);
+
+            if (this.data.conditional[key].extends) {
+              this.data.conditional[key].extends?.forEach(
+                (extendKey: string) => {
+                  const data = this.data.conditional?.[extendKey];
+
+                  this.callbackEdges(data?.edges, callback, true, true);
+                  this.callbackEdges(
+                    data?.directedEdges,
+                    callback,
+                    false,
+                    true
+                  );
+                }
+              );
+            }
+
+            this.callbackEdges(
+              this.data.conditional[key].edges,
+              callback,
+              true,
+              true
+            );
+            this.callbackEdges(
+              this.data.conditional[key].directedEdges,
+              callback,
+              false,
+              true
+            );
           }
         }
       }

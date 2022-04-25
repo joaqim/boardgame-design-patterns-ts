@@ -16,6 +16,18 @@ export type NodeDistances<TSize extends number> = FixedArray<
 
 export type Edge<TNode> = [a: TNode, b: TNode];
 
+interface Region<
+  TNodeSize extends number,
+  TNode = Node<TNodeSize>,
+  TEdge = Edge<TNode>
+> {
+  nodes?: Array<TNode | null>;
+  edges?: TEdge[];
+  directedEdges?: TEdge[];
+  extends?: string[];
+  stepLimit?: number;
+}
+
 export interface GraphMetaData<
   TLength extends number,
   TOffset extends 0 | 1 = 0,
@@ -29,14 +41,6 @@ export interface GraphMetaData<
   // nodes?: FixedArray<TNodeSize, TNode | null>;
   edges?: TEdge[];
   directedEdges?: TEdge[];
-  conditional?: Record<
-    string,
-    {
-      nodes?: Array<TNode | null>;
-      edges?: TEdge[];
-      directedEdges?: TEdge[];
-      extends?: string[];
-      stepLimit?: number;
-    }
-  >;
+  regions?: Record<string, Region<TNodeSize, TNode, TEdge>>;
+  conditional?: Record<string, Region<TNodeSize, TNode, TEdge>>;
 }

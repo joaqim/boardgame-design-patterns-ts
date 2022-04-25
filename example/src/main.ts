@@ -2,7 +2,7 @@
 import { Graph } from "boardgame-design-patterns-ts";
 import talismanBoardImgSource from "../assets/talisman_board_clone.png";
 import TalismanGraphConfig from "../graphs/talisman-graph-config";
-import { canvas_half_arrow } from "./canvas-draw";
+import { CanvasHalfArrow } from "./canvas-draw";
 import { TalismanNodeLayoutRelativePosition } from "./talisman-node-layout";
 
 type GraphNode = [x: number, y: number];
@@ -14,9 +14,9 @@ class DrawingApp {
 
   private readonly graph = new Graph(TalismanGraphConfig);
   private graphConditions: string[] = ["default"];
-  private currentMap: "no_expansion" = "no_expansion";
+  private readonly currentMap: "no_expansion" = "no_expansion";
 
-  private img = new Image();
+  private readonly img = new Image();
 
 
   private readonly buttonsDiv: HTMLDivElement;
@@ -59,8 +59,8 @@ class DrawingApp {
     this.addButtons(buttonsDefaultDiv, this.buttonsDefaultList);
 
     this.buttonsDiv = document.getElementById("buttons") as HTMLDivElement;
-    this.addButtons(this.buttonsDiv, this.buttons["default"]);
-    this.addButtons(this.buttonsDiv, this.buttons["city"]);
+    this.addButtons(this.buttonsDiv, this.buttons.default);
+    this.addButtons(this.buttonsDiv, this.buttons.city);
 
     // Image
     this.img.src = talismanBoardImgSource;
@@ -75,21 +75,21 @@ class DrawingApp {
     );
   }
 
-  private addButtons(parent: HTMLDivElement, buttonDefitinion: string[][]) {
-    for (let def of buttonDefitinion) {
-      let btn: HTMLButtonElement = document.createElement("button");
-      btn.id = def[0];
-      btn.textContent = def[1];
-      btn.addEventListener("click", () => {
+  private addButtons(parent: HTMLDivElement, buttonDefitinion: string[][]): void {
+    for (const definition of buttonDefitinion) {
+      const button: HTMLButtonElement = document.createElement("button");
+      button.id = definition[0];
+      button.textContent = definition[1];
+      button.addEventListener("click", () => {
         this.graphConditions =
-          btn.id.indexOf(",") !== -1 ? btn.id.split(",") : [btn.id];
+          button.id.includes(",") ? button.id.split(",") : [button.id];
         this.redraw();
       });
-      parent.appendChild(btn);
+      parent.append(button);
     }
   }
 
-  private redraw() {
+  private redraw() : void{
     this.context.drawImage(this.img, 0, 0);
     this.drawGraph(this.graph);
   }
@@ -134,11 +134,12 @@ class DrawingApp {
     const x2 = nodeB[0] * width + radius;
     const y2 = nodeB[1] * height + radius;
     context.beginPath();
+
     if (bidirectional) {
       context.moveTo(x1, y1);
       context.lineTo(x2, y2);
     } else {
-      canvas_half_arrow(context, x1, y1, x2, y2);
+      CanvasHalfArrow(context, x1, y1, x2, y2);
     }
     context.stroke();
   }

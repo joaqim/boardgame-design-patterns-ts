@@ -1,16 +1,16 @@
 // https://stackoverflow.com/a/6333775
-export function canvas_arrow(
+export function CanvasArrow(
   context: CanvasRenderingContext2D,
   fromx: number,
   fromy: number,
   tox: number,
   toy: number
-) {
+): void {
   // Length of head in pixels
-  var headlen = 24;
-  var dx = tox - fromx;
-  var dy = toy - fromy;
-  var angle = Math.atan2(dy, dx);
+  const headlen = 24;
+  const dx = tox - fromx;
+  const dy = toy - fromy;
+  const angle = Math.atan2(dy, dx);
 
   context.moveTo(fromx, fromy);
   context.lineTo(tox, toy);
@@ -25,21 +25,21 @@ export function canvas_arrow(
     toy - headlen * Math.sin(angle + Math.PI / 6)
   );
 }
-export function canvas_half_arrow(
+export function CanvasHalfArrow(
   context: CanvasRenderingContext2D,
   fromx: number,
   fromy: number,
   tox: number,
   toy: number
-) {
+): void {
   // Length of head in pixels
-  var headlen = 24;
-  var dx = tox - fromx;
-  var dy = toy - fromy;
+  const headlen = 24;
+  const dx = tox - fromx;
+  const dy = toy - fromy;
 
   // Shorten arrow length by half
-  var angle = Math.atan2(dy, dx);
-  var length: number = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+  const angle = Math.atan2(dy, dx);
+  const length = Math.sqrt(dx ** 2 + dy ** 2);
   fromx -= (length / 2) * Math.cos(angle + Math.PI);
   fromy -= (length / 2) * Math.sin(angle + Math.PI);
 

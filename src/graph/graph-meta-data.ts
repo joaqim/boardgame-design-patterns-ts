@@ -14,15 +14,21 @@ export type NodeDistances<TSize extends number> = FixedArray<
 >;
 
 export type Edge<TNode> = [a: TNode, b: TNode];
+export type EdgeArray<TNode> = Array<[a: TNode, b: TNode]>;
 
-interface Region<
+export interface Region<TNodeSize extends number, TNode = Node<TNodeSize>> {
+  nodes?: Array<TNode | null>;
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
+  stepLimit?: number;
+}
+
+export interface RegionMetaData<
   TNodeSize extends number,
   TNode = Node<TNodeSize>,
-  TEdge = Edge<TNode>
 > {
-  nodes?: Array<TNode | null>;
-  edges?: TEdge[];
-  directedEdges?: TEdge[];
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
   extends?: string[];
   stepLimit?: number;
 }
@@ -30,11 +36,12 @@ interface Region<
 export interface GraphMetaData<
   TNodeSize extends number,
   TNode = Node<TNodeSize>,
-  TEdge = Edge<TNode>
 > {
   length: TNodeSize;
-  edges?: TEdge[];
-  directedEdges?: TEdge[];
-  regions?: Record<string, Region<TNodeSize, TNode, TEdge>>;
-  conditional?: Record<string, Region<TNodeSize, TNode, TEdge>>;
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
+  regions?: Record<string, RegionMetaData<TNodeSize, TNode>> & {
+    default?: RegionMetaData<TNodeSize, TNode>;
+  };
+  conditional?: Record<string, RegionMetaData<TNodeSize, TNode>>;
 }

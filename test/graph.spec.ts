@@ -7,7 +7,11 @@ import TalismanGraphConf from './graphs/talisman-graph-config';
 
 const flatNodeGraph = createGraphData({
     length: 9,
-    edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
+    regions: {
+        default: {
+            edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
+        }
+    }
 });
 /*
  * Example of node graph with unconnected/unreachable nodes

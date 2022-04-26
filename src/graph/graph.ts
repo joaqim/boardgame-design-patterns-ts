@@ -2,11 +2,14 @@ import type { AdjacencyMatrix, FixedArray } from "../containers";
 import { createAdjacencyMatrix, toFixedArray } from "../containers";
 import type {
   Edge,
+  EdgeArray,
   GraphMetaData,
   Node,
   NodeDistances,
   NodePath,
-  NodeStack
+  NodeStack,
+  Region,
+  RegionMetaData
 } from "./graph-meta-data";
 import { createNode } from "./graph-utils";
 
@@ -17,40 +20,119 @@ export default class Graph<
 > {
   private readonly list = new Map<TNode, TNode[]>();
   // private readonly matrix: number[][] = [];
-  private readonly matrix: AdjacencyMatrix<TNodeSize, TNode>;
+  private matrix?: AdjacencyMatrix<TNodeSize, TNode>;
   private readonly data: GraphMetaData<TNodeSize, TNode>;
   private readonly nodes: FixedArray<TNodeSize, TNode | null>;
   public readonly length: number;
+
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private regions = new Map<string, Region<TNodeSize, TNode>>();
 
   public distances?: NodeDistances<TNodeSize>;
 
   public path?: NodePath<TNode>;
 
   public constructor(data: GraphMetaData<TNodeSize, TNode>) {
-
     if (data.length <= 0) {
       throw new Error("Graph: Cannot create graph with length of 0 or less.");
     }
+    this.data = data;
     this.length = data.length;
 
-    this.nodes = <FixedArray<TNodeSize, TNode | null>>(
-      Array.from({ length: data.length })
+    this.nodes = <FixedArray<TNodeSize, TNode | null>>Array.from(
+      { length: data.length },
+      (_value: undefined, index: number) => {
+        this.list.set(createNode(index), []);
+        return index;
+      }
     );
 
-    (this.nodes as TNode[]).forEach((node, index) => {
-      (this.nodes as number[])[index] = index;
-      this.list.set(node, []);
-    });
+    if (data.edges || data.directedEdges) {
+      this.regions.set("default", {
+        edges: data.edges,
+        directedEdges: data.directedEdges
+      });
+    } else if (data.regions?.default) {
+      this.regions.set("default", this.initializeRegion(data.regions.default));
+    } else {
+      throw new Error("Missing default Region");
+    }
 
+    if (data.regions) {
+      Object.entries(data.regions).forEach(([name, region]): void => {
+        this.regions.set(name, this.initializeRegion(region));
+      });
+    }
+
+    this.setRegion("default");
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private concatEdges(
+    edgesLhs: EdgeArray<TNode> | undefined,
+    edgesRhs: EdgeArray<TNode> | undefined
+  ): EdgeArray<TNode> | undefined {
+    let result: EdgeArray<TNode> | undefined;
+
+    if (!edgesLhs) {
+      result = edgesRhs;
+    } else if (edgesRhs) {
+      result = [...edgesLhs, ...edgesRhs];
+    }
+    return result;
+  }
+
+  private concatRegions(
+    regionLhs: Region<TNodeSize, TNode>,
+    regionRhs: Region<TNodeSize, TNode>
+  ): Region<TNodeSize, TNode> {
+    return {
+      edges: this.concatEdges(regionLhs.edges, regionRhs.edges),
+      directedEdges: this.concatEdges(
+        regionLhs.directedEdges,
+        regionRhs.directedEdges
+      )
+    };
+  }
+
+  private initializeRegion(
+    region: RegionMetaData<TNodeSize, TNode>
+  ): Region<TNodeSize, TNode> {
+    let result: Region<TNodeSize, TNode> = {
+      edges: region.edges,
+      directedEdges: region.directedEdges,
+      stepLimit: region.stepLimit
+    };
+    region.extends?.forEach((extendKey: string) => {
+      const extendRegion = this.data.regions?.[extendKey];
+
+      if (extendRegion) {
+        result = this.concatRegions(
+          result,
+          this.initializeRegion(extendRegion)
+        );
+      }
+    });
+    return result;
+  }
+
+  private setRegion(name: string): void {
+    const region = this.regions.get(name);
+    this.recalculate(region?.edges, region?.directedEdges);
+  }
+
+  private recalculate(
+    edges?: EdgeArray<TNode>,
+    directedEdges?: EdgeArray<TNode>
+  ): void {
     this.matrix = createAdjacencyMatrix<TNodeSize, TNode>({
-      length: data.length,
-      edges: data.edges,
-      directedEdges: data.directedEdges
+      length: this.length,
+      edges,
+      directedEdges
     });
-
-    data.edges?.forEach((edge) => this.addEdge(edge));
-    data.directedEdges?.forEach((edge) => this.addEdge(edge, false));
-    this.data = data;
+    edges?.forEach((edge) => this.addEdge(edge));
+    directedEdges?.forEach((edge) => this.addEdge(edge, false));
   }
 
   /**
@@ -164,11 +246,7 @@ export default class Graph<
       let shortestDistance = Number.MAX_VALUE;
       let shortestIndex = -1;
 
-      for (
-        let index = 0;
-        index < this.length;
-        index += 1
-      ) {
+      for (let index = 0; index < this.length; index += 1) {
         // ... by going through all nodes that haven't been visited yet
         if (distances[index] < shortestDistance && !visited[index]) {
           shortestDistance = distances[index];
@@ -183,11 +261,7 @@ export default class Graph<
       }
 
       // ...then, for all neighboring nodes....
-      for (
-        let index = 0;
-        index < this.length;
-        index += 1
-      ) {
+      for (let index = 0; index < this.length; index += 1) {
         // ...if the path over this edge is shorter...
         if (
           (this.matrix as number[][])[shortestIndex][index] !== 0 &&
@@ -237,11 +311,7 @@ export default class Graph<
       return result;
     }
 
-    for (
-      let index = 0;
-      index < this.length;
-      index += 1
-    ) {
+    for (let index = 0; index < this.length; index += 1) {
       const dist = (this.distances as number[])[index];
 
       if (dist <= reach) {
@@ -321,11 +391,7 @@ export default class Graph<
   }
 
   public forEachNode(callback: (node: number) => void): void {
-    for (
-      let index = 0;
-      index < this.length;
-      index += 1
-    ) {
+    for (let index = 0; index < this.length; index += 1) {
       callback(index);
     }
     // (this.nodes as number[]).forEach((node) => callback(node));
@@ -334,7 +400,7 @@ export default class Graph<
   // TODO: Make better
   // eslint-disable-next-line class-methods-use-this
   private callbackEdges(
-    edges?: Array<Edge<TNode>>,
+    edges?: EdgeArray<TNode>,
     callback?: (
       edge: [a: number, b: number],
       bidirectional: boolean,

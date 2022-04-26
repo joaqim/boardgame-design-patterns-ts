@@ -1,4 +1,4 @@
-import type { GraphMetaData } from "../../src/graph";
+import { createGraphData } from "../../src/graph";
 
 /** Dice Node Graph
  * The layout of a die expressed as a node graph
@@ -18,7 +18,7 @@ import type { GraphMetaData } from "../../src/graph";
  *               |0___0|
  */
 
-const DiceNodeGraph : Readonly<GraphMetaData<6>> = {
+const DiceNodeGraph = createGraphData({
     length: 6,
     edges: [
         // 1 is adjacent to 4 numbers on the die
@@ -38,5 +38,5 @@ const DiceNodeGraph : Readonly<GraphMetaData<6>> = {
         // 5 touches 3
         [4, 2],
     ],
-};
+});
 export default DiceNodeGraph;

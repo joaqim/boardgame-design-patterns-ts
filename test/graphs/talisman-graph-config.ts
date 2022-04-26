@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { GraphMetaData } from "../../src/graph";
+import { createGraphData } from "../../src/graph";
 
 /*
  * The board from Talisman the Boardgame represented as a Node Graph
@@ -7,7 +7,7 @@ import { GraphMetaData } from "../../src/graph";
  * are connected to eachother.
  */
 
-const TalismanGraphConfig: GraphMetaData<49> = {
+const TalismanGraphConfig = createGraphData({
   length: 49,
   edges: [
     // Outer ring
@@ -112,6 +112,6 @@ const TalismanGraphConfig: GraphMetaData<49> = {
       extends: ["storm_river"]
     }
   }
-};
+});
 
 export default TalismanGraphConfig

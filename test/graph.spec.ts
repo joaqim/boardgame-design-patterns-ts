@@ -1,29 +1,29 @@
 import { expect } from "chai";
-import { GraphMetaData, NodePath } from "../src/graph";
+import { createGraphData, GraphMetaData, NodePath } from "../src/graph";
 import Graph from "../src/graph/graph";
 import DiceNodeGraph from './graphs/dice-graph-config';
 import DirectedEdgesWithLoopingNodeGraph from './graphs/directed-edges-with-loop-graph-config';
 import TalismanGraphConf from './graphs/talisman-graph-config';
 
-const flatNodeGraph: Readonly<GraphMetaData<9>> = {
+const flatNodeGraph = createGraphData({
     length: 9,
     edges: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8]]
-}
+});
 /*
  * Example of node graph with unconnected/unreachable nodes
  */
-const unconnectedNode: Readonly<GraphMetaData<6>> = {
+const unconnectedNode = createGraphData({
     length: 6,
     edges: [
         [0, 1], [1, 2],
         [4, 5] /* 4 and 5 only see eachother, while 3 sees none */]
-};
+});
 
-const oneWayNodeGraph: GraphMetaData<3> = {
+const oneWayNodeGraph = createGraphData({
     length: 3,
     /* edges with only one direction */
     directedEdges: [[0,1], [1, 2]]
-};
+});
 
 
 const walkPath = <TNode extends number>(start: TNode, path: NodePath<TNode>): void => {

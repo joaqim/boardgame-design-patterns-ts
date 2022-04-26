@@ -1,4 +1,4 @@
-import { GraphMetaData } from "../../src/graph";
+import { createGraphData } from "../../src/graph";
 
 /*  Directed Node Graph with Looping and bidirectional edges
  *  To get back to 4 you would have to loop around
@@ -12,7 +12,7 @@ import { GraphMetaData } from "../../src/graph";
  *   |     V
  *   6-----5
  */
-const DirectedEdgesWithLoopingNodeGraph: GraphMetaData<6> = {
+const DirectedEdgesWithLoopingNodeGraph = createGraphData({
     length: 6,
     edges: [
         [0, 1],
@@ -28,5 +28,5 @@ const DirectedEdgesWithLoopingNodeGraph: GraphMetaData<6> = {
     ],
     /* edges with only one direction */
     directedEdges: [[2,3], [3, 5]]
-};
+});
 export default DirectedEdgesWithLoopingNodeGraph

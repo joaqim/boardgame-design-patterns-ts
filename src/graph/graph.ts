@@ -1,6 +1,5 @@
 import type { AdjacencyMatrix, FixedArray } from "../containers";
 import { createAdjacencyMatrix, toFixedArray } from "../containers";
-import type { Add } from "../math/meta-typing";
 import type {
   Edge,
   GraphMetaData,
@@ -13,25 +12,21 @@ import { createNode } from "./graph-utils";
 
 /** Node Graph */
 export default class Graph<
-  TLength extends number,
-  TOffset extends 0 | 1 = 0,
-  TNodeSize extends number = Add<TLength, TOffset>,
-  TNode extends number = Node<TNodeSize, TOffset>
+  TNodeSize extends number,
+  TNode extends number = Node<TNodeSize>
 > {
   private readonly list = new Map<TNode, TNode[]>();
   // private readonly matrix: number[][] = [];
-  private readonly matrix: AdjacencyMatrix<TLength, TOffset, TNodeSize, TNode>;
-  private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
+  private readonly matrix: AdjacencyMatrix<TNodeSize, TNode>;
+  private readonly data: GraphMetaData<TNodeSize, TNode>;
   private readonly nodes: FixedArray<TNodeSize, TNode | null>;
   public readonly length: number;
-  public readonly offset;
 
   public distances?: NodeDistances<TNodeSize>;
 
   public path?: NodePath<TNode>;
 
-  public constructor(data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>) {
-    this.offset = data.offset ?? 0;
+  public constructor(data: GraphMetaData<TNodeSize, TNode>) {
 
     if (data.length <= 0) {
       throw new Error("Graph: Cannot create graph with length of 0 or less.");
@@ -39,17 +34,16 @@ export default class Graph<
     this.length = data.length;
 
     this.nodes = <FixedArray<TNodeSize, TNode | null>>(
-      Array.from({ length: data.length + this.offset })
+      Array.from({ length: data.length })
     );
 
     (this.nodes as TNode[]).forEach((node, index) => {
-      (this.nodes as number[])[index + this.offset] = index + this.offset;
+      (this.nodes as number[])[index] = index;
       this.list.set(node, []);
     });
 
-    this.matrix = createAdjacencyMatrix<TLength, TOffset, TNodeSize, TNode>({
+    this.matrix = createAdjacencyMatrix<TNodeSize, TNode>({
       length: data.length,
-      offset: data.offset,
       edges: data.edges,
       directedEdges: data.directedEdges
     });
@@ -145,14 +139,13 @@ export default class Graph<
     // This contains the distances from the start node to all other nodes
     // Initializing with a distance of "Infinity"
     const distances = Array.from<number>({
-      length: this.length + this.offset
+      length: this.length
     }).fill(Number.MAX_VALUE);
 
-    // Starting index cannot be lower than offset
-    const startIndex = Math.max(start, this.offset);
+    // Starting index cannot be higher than length
 
     // The distance from the start node to itself is 0
-    distances[startIndex] = 0;
+    distances[start] = 0;
 
     // This contains whether a node was already visited
     const visited = [];
@@ -163,7 +156,7 @@ export default class Graph<
 
     // The starting node does not
     // have a parent in path tree
-    path[startIndex] = null;
+    path[start] = null;
 
     // While there are nodes left to visit...
     for (;;) {
@@ -172,8 +165,8 @@ export default class Graph<
       let shortestIndex = -1;
 
       for (
-        let index = this.offset;
-        index < this.length + this.offset;
+        let index = 0;
+        index < this.length;
         index += 1
       ) {
         // ... by going through all nodes that haven't been visited yet
@@ -191,8 +184,8 @@ export default class Graph<
 
       // ...then, for all neighboring nodes....
       for (
-        let index = this.offset;
-        index < this.length + this.offset;
+        let index = 0;
+        index < this.length;
         index += 1
       ) {
         // ...if the path over this edge is shorter...
@@ -245,8 +238,8 @@ export default class Graph<
     }
 
     for (
-      let index = this.offset + 1;
-      index < this.length + this.offset;
+      let index = 0;
+      index < this.length;
       index += 1
     ) {
       const dist = (this.distances as number[])[index];
@@ -329,8 +322,8 @@ export default class Graph<
 
   public forEachNode(callback: (node: number) => void): void {
     for (
-      let index = this.offset;
-      index < this.length + this.offset;
+      let index = 0;
+      index < this.length;
       index += 1
     ) {
       callback(index);

@@ -1,5 +1,5 @@
 type Grow<T, A extends T[]> = ((x: T, ...xs: A) => void) extends (
-  ...a: infer X
+  ...arguments_: infer X
 ) => void
   ? X
   : never;

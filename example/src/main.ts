@@ -13,7 +13,7 @@ class DrawingApp {
   private readonly context: CanvasRenderingContext2D;
 
   private readonly graph = new Graph(TalismanGraphConfig);
-  private graphConditions: string[] = ["default"];
+  private graphConditions: string[] = ["default", "sentinel_bridge"];
   private readonly currentMap: "no_expansion" = "no_expansion";
 
   private readonly img = new Image();
@@ -21,7 +21,7 @@ class DrawingApp {
 
   private readonly buttonsDiv: HTMLDivElement;
   private readonly buttonsDefaultList = [
-    ["default", "Show Default"],
+    ["default,sentinel_bridge", "Show Default"],
     ["all", "Show All"]
   ];
 

@@ -5,8 +5,11 @@ import TalismanGraphConfig from "../graphs/talisman-graph-config";
 import { CanvasHalfArrow } from "./canvas-draw";
 import { TalismanNodeLayoutRelativePosition } from "./talisman-node-layout";
 
-type GraphNode = [x: number, y: number];
-type GraphEdge = [a: number, b: number];
+// Where number is pixel position of node
+type Position = [x: number, y: number];
+
+// Where number is index of Node
+type Edge = [a: number, b: number];
 
 class DrawingApp {
   private readonly canvas: HTMLCanvasElement;
@@ -94,14 +97,14 @@ class DrawingApp {
     this.drawGraph(this.graph);
   }
 
-  private drawNode(node: GraphNode, radius = 6): void {
+  private drawNode(position: Position, radius = 6): void {
     const context = this.context;
     context.beginPath();
     context.strokeStyle = "black";
     context.fillStyle = "blue";
     context.arc(
-      node[0] + radius,
-      node[1] + radius,
+      position[0] + radius,
+      position[1] + radius,
       radius,
       0,
       Math.PI * 2,
@@ -112,7 +115,7 @@ class DrawingApp {
   }
 
   private drawEdge(
-    edge: GraphEdge,
+    edge: Edge,
     bidirectional = true,
     conditional = false
   ): void {
@@ -144,9 +147,9 @@ class DrawingApp {
     context.stroke();
   }
 
-  private drawGraph(graph: Graph<49>): void {
+  private drawGraph<T extends number>(graph: Graph<T>): void {
     graph.forEachEdge(
-      (edge: GraphEdge, bidirectional: boolean, conditional: boolean): void => {
+      (edge: Edge, bidirectional: boolean, conditional: boolean): void => {
         this.drawEdge(edge, bidirectional, conditional);
       },
       this.graphConditions

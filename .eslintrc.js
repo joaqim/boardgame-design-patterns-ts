@@ -2,7 +2,15 @@ module.exports = {
   root: true,
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint", "prettier"],
-  extends: ["@programic/eslint-config-typescript", "prettier"],
+  overrides: [
+    {
+      files: ["*.ts"],
+      extends: ["@programic/eslint-config-typescript", "prettier"],
+      parserOptions: {
+        project: ["./tsconfig.json"],
+      },
+    },
+  ],
   rules: {
     "max-classes-per-file": "warn",
     "padding-line-between-statements": "warn",

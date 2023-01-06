@@ -1,62 +1,138 @@
 import type { AdjacencyMatrix, FixedArray } from "../containers";
 import { createAdjacencyMatrix, toFixedArray } from "../containers";
-import type { Add } from "../math/meta-typing";
 import type {
   Edge,
+  EdgeArray,
   GraphMetaData,
   Node,
   NodeDistances,
   NodePath,
-  NodeStack
+  NodeStack,
+  Region,
+  RegionMetaData
 } from "./graph-meta-data";
 import { createNode } from "./graph-utils";
 
 /** Node Graph */
 export default class Graph<
-  TLength extends number,
-  TOffset extends 0 | 1 = 0,
-  TNodeSize extends number = Add<TLength, TOffset>,
-  TNode extends number = Node<TNodeSize, TOffset>
+  TNodeSize extends number,
+  TNode extends number = Node<TNodeSize>
 > {
   private readonly list = new Map<TNode, TNode[]>();
   // private readonly matrix: number[][] = [];
-  private readonly matrix: AdjacencyMatrix<TLength, TOffset, TNodeSize, TNode>;
-  private readonly data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>;
+  private matrix?: AdjacencyMatrix<TNodeSize, TNode>;
+  private readonly data: GraphMetaData<TNodeSize, TNode>;
   private readonly nodes: FixedArray<TNodeSize, TNode | null>;
   public readonly length: number;
-  public readonly offset;
+
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private regions = new Map<string, Region<TNodeSize, TNode>>();
 
   public distances?: NodeDistances<TNodeSize>;
 
   public path?: NodePath<TNode>;
 
-  public constructor(data: GraphMetaData<TLength, TOffset, TNodeSize, TNode>) {
-    this.offset = data.offset ?? 0;
-
+  public constructor(data: GraphMetaData<TNodeSize, TNode>) {
     if (data.length <= 0) {
       throw new Error("Graph: Cannot create graph with length of 0 or less.");
     }
+    this.data = data;
     this.length = data.length;
 
-    this.nodes = <FixedArray<TNodeSize, TNode | null>>(
-      Array.from({ length: data.length + this.offset })
+    this.nodes = <FixedArray<TNodeSize, TNode | null>>Array.from(
+      { length: data.length },
+      (_value: undefined, index: number) => {
+        this.list.set(createNode(index), []);
+        return index;
+      }
     );
 
-    (this.nodes as TNode[]).forEach((node, index) => {
-      (this.nodes as number[])[index + this.offset] = index + this.offset;
-      this.list.set(node, []);
-    });
+    if (data.edges || data.directedEdges) {
+      this.regions.set("default", {
+        edges: data.edges,
+        directedEdges: data.directedEdges
+      });
+    } else if (data.regions?.default) {
+      this.regions.set("default", this.initializeRegion(data.regions.default));
+    } else {
+      throw new Error("Missing default Region");
+    }
 
-    this.matrix = createAdjacencyMatrix<TLength, TOffset, TNodeSize, TNode>({
-      length: data.length,
-      offset: data.offset,
-      edges: data.edges,
-      directedEdges: data.directedEdges
-    });
+    if (data.regions) {
+      Object.entries(data.regions).forEach(([name, region]): void => {
+        this.regions.set(name, this.initializeRegion(region));
+      });
+    }
 
-    data.edges?.forEach((edge) => this.addEdge(edge));
-    data.directedEdges?.forEach((edge) => this.addEdge(edge, false));
-    this.data = data;
+    this.setRegion("default");
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private concatEdges(
+    edgesLhs: EdgeArray<TNode> | undefined,
+    edgesRhs: EdgeArray<TNode> | undefined
+  ): EdgeArray<TNode> | undefined {
+    let result: EdgeArray<TNode> | undefined;
+
+    if (!edgesLhs) {
+      result = edgesRhs;
+    } else if (edgesRhs) {
+      result = [...edgesLhs, ...edgesRhs];
+    }
+    return result;
+  }
+
+  private concatRegions(
+    regionLhs: Region<TNodeSize, TNode>,
+    regionRhs: Region<TNodeSize, TNode>
+  ): Region<TNodeSize, TNode> {
+    return {
+      edges: this.concatEdges(regionLhs.edges, regionRhs.edges),
+      directedEdges: this.concatEdges(
+        regionLhs.directedEdges,
+        regionRhs.directedEdges
+      )
+    };
+  }
+
+  private initializeRegion(
+    region: RegionMetaData<TNodeSize, TNode>
+  ): Region<TNodeSize, TNode> {
+    let result: Region<TNodeSize, TNode> = {
+      edges: region.edges,
+      directedEdges: region.directedEdges,
+      stepLimit: region.stepLimit
+    };
+    region.extends?.forEach((extendKey: string) => {
+      const extendRegion = this.data.regions?.[extendKey];
+
+      if (extendRegion) {
+        result = this.concatRegions(
+          result,
+          this.initializeRegion(extendRegion)
+        );
+      }
+    });
+    return result;
+  }
+
+  private setRegion(name: string): void {
+    const region = this.regions.get(name);
+    this.recalculate(region?.edges, region?.directedEdges);
+  }
+
+  private recalculate(
+    edges?: EdgeArray<TNode>,
+    directedEdges?: EdgeArray<TNode>
+  ): void {
+    this.matrix = createAdjacencyMatrix<TNodeSize, TNode>({
+      length: this.length,
+      edges,
+      directedEdges
+    });
+    edges?.forEach((edge) => this.addEdge(edge));
+    directedEdges?.forEach((edge) => this.addEdge(edge, false));
   }
 
   /**
@@ -145,14 +221,13 @@ export default class Graph<
     // This contains the distances from the start node to all other nodes
     // Initializing with a distance of "Infinity"
     const distances = Array.from<number>({
-      length: this.length + this.offset
+      length: this.length
     }).fill(Number.MAX_VALUE);
 
-    // Starting index cannot be lower than offset
-    const startIndex = Math.max(start, this.offset);
+    // Starting index cannot be higher than length
 
     // The distance from the start node to itself is 0
-    distances[startIndex] = 0;
+    distances[start] = 0;
 
     // This contains whether a node was already visited
     const visited = [];
@@ -163,7 +238,7 @@ export default class Graph<
 
     // The starting node does not
     // have a parent in path tree
-    path[startIndex] = null;
+    path[start] = null;
 
     // While there are nodes left to visit...
     for (;;) {
@@ -171,11 +246,7 @@ export default class Graph<
       let shortestDistance = Number.MAX_VALUE;
       let shortestIndex = -1;
 
-      for (
-        let index = this.offset;
-        index < this.length + this.offset;
-        index += 1
-      ) {
+      for (let index = 0; index < this.length; index += 1) {
         // ... by going through all nodes that haven't been visited yet
         if (distances[index] < shortestDistance && !visited[index]) {
           shortestDistance = distances[index];
@@ -190,11 +261,7 @@ export default class Graph<
       }
 
       // ...then, for all neighboring nodes....
-      for (
-        let index = this.offset;
-        index < this.length + this.offset;
-        index += 1
-      ) {
+      for (let index = 0; index < this.length; index += 1) {
         // ...if the path over this edge is shorter...
         if (
           (this.matrix as number[][])[shortestIndex][index] !== 0 &&
@@ -244,11 +311,7 @@ export default class Graph<
       return result;
     }
 
-    for (
-      let index = this.offset + 1;
-      index < this.length + this.offset;
-      index += 1
-    ) {
+    for (let index = 0; index < this.length; index += 1) {
       const dist = (this.distances as number[])[index];
 
       if (dist <= reach) {
@@ -328,11 +391,7 @@ export default class Graph<
   }
 
   public forEachNode(callback: (node: number) => void): void {
-    for (
-      let index = this.offset;
-      index < this.length + this.offset;
-      index += 1
-    ) {
+    for (let index = 0; index < this.length; index += 1) {
       callback(index);
     }
     // (this.nodes as number[]).forEach((node) => callback(node));
@@ -341,7 +400,7 @@ export default class Graph<
   // TODO: Make better
   // eslint-disable-next-line class-methods-use-this
   private callbackEdges(
-    edges?: Array<Edge<TNode>>,
+    edges?: EdgeArray<TNode>,
     callback?: (
       edge: [a: number, b: number],
       bidirectional: boolean,

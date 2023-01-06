@@ -1,6 +1,5 @@
 import type { FixedArray } from "../containers";
 import type { NumberRange } from "../containers/number-range";
-import type { Add } from "../math/meta-typing";
 
 export type Node<
   TRange extends number,
@@ -15,32 +14,34 @@ export type NodeDistances<TSize extends number> = FixedArray<
 >;
 
 export type Edge<TNode> = [a: TNode, b: TNode];
+export type EdgeArray<TNode> = Array<[a: TNode, b: TNode]>;
 
-interface Region<
+export interface Region<TNodeSize extends number, TNode = Node<TNodeSize>> {
+  nodes?: Array<TNode | null>;
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
+  stepLimit?: number;
+}
+
+export interface RegionMetaData<
   TNodeSize extends number,
   TNode = Node<TNodeSize>,
-  TEdge = Edge<TNode>
 > {
-  nodes?: Array<TNode | null>;
-  edges?: TEdge[];
-  directedEdges?: TEdge[];
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
   extends?: string[];
   stepLimit?: number;
 }
 
 export interface GraphMetaData<
-  TLength extends number,
-  TOffset extends 0 | 1 = 0,
-  TNodeSize extends number = Add<TLength, TOffset>,
-  TNode = Node<TNodeSize, TOffset>,
-  TEdge = Edge<TNode>
+  TNodeSize extends number,
+  TNode = Node<TNodeSize>,
 > {
-  length: TLength;
-  offset?: TOffset;
-  // nodes: TNode[];
-  // nodes?: FixedArray<TNodeSize, TNode | null>;
-  edges?: TEdge[];
-  directedEdges?: TEdge[];
-  regions?: Record<string, Region<TNodeSize, TNode, TEdge>>;
-  conditional?: Record<string, Region<TNodeSize, TNode, TEdge>>;
+  length: TNodeSize;
+  edges?: EdgeArray<TNode>;
+  directedEdges?: EdgeArray<TNode>;
+  regions?: Record<string, RegionMetaData<TNodeSize, TNode>> & {
+    default?: RegionMetaData<TNodeSize, TNode>;
+  };
+  conditional?: Record<string, RegionMetaData<TNodeSize, TNode>>;
 }

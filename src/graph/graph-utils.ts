@@ -1,8 +1,8 @@
 import type { GraphMetaData } from "./graph-meta-data";
 
-export const createGraphData = <TLength extends number, TOffset extends 0 | 1 = 0>(
-  graphMap: GraphMetaData<TLength, TOffset>
-): GraphMetaData<TLength, TOffset> => {
+export const createGraphData = <TLength extends number>(
+  graphMap: GraphMetaData<TLength>
+): GraphMetaData<TLength> => {
   return graphMap;
 };
 
